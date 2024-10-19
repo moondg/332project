@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.defaultFormatter": "scalameta.metals",
+		"editor.formatOnSave": true,
+		"files.trimFinalNewlines": true,
+		"files.trimTrailingWhitespace": true
+	}
+}
