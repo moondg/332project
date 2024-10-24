@@ -5,6 +5,8 @@ Upload CSED332(Software Design Method) group project works
 [1. Participants](#participants)  
 [2. Milestone](#milestone)  
 [3. Weekly Progress](#weekly-progress)  
+[4. Workflow](#workflow)
+[5. Feedback](#feedback)
 
 ## Participants
 
@@ -37,7 +39,6 @@ Based on the _The Mythical Man-Month_, the development period was divided into 4
 ### Milestone #4
 - Test integrated milestone #3 with sample data to see it works well
 - Debug errors for sample data
-
 
 ### Milestone #5
 - Test distributed sorting program with intensive data
@@ -84,3 +85,10 @@ Workflow based on TDD (Test Driven Development)
 - `main`: For release 
 - `develop`: Merge test-passed features
 - `test-[TestName]`: Develop feature and testsuite
+
+## Feedback
+### Week 1
+- Heavy Milestone #3: Milestones should have similar workloads. Milestone should take feedbacks from previous Milestone.
+- No need to follow Mythical Man Month strictly: Update development cycle by merging programming phase and testing/debuging phase.
+- Parsing/Sort/Partition/Shuffle, Merge/Sampling is closely related: Well-defined interface needed, extra effort for communication needed.
+- TDD's idea is "test is a some kind of document": Record TDD application for docs with details.
