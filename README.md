@@ -99,27 +99,27 @@ Workflow based on TDD (Test Driven Development)
 
 ## Design
 ### Pseudocode
-
-divide_data(number_of_disk);
-for i in 0 to number_of_disk, i++:
-  internal_sort(disk[i]);
-  mergeQueue.insert({i});
-while(mergeQueue.size() > 1):
-  merge_first = mergeQueue.front; mergeQueue.pop;
-  merge_second = mergeQueue.front; mergeQueue.pop;
-  for i, j in 0 to merge_first.size, merge_second.size, no change in for statement:
-    if(RAM_Queue[0].empty):
-      RAM_Queue[0].push(merge_first[i to i + RAM_SORT_BLOCK_SIZE / 2]);
-      i += RAM_SORT_BLOCK_SIZE / 2;
-    if(RAM_Queue[1].empty):
-      RAM_Queue[1].push(get_proper_merge_second_location(merge_second[j to j + RAM_SORT_BLOCK_SIZE / 2]));
-      j += RAM_SORT_BLOCK_SIZE / 2;
-    while(!RAM_Queue[0].empty && !RAM_Queue[1].empty):
-      RAM_Sorted.push_back(min(RAM_Queue[0].front, RAM_Queue[1].front));
-      pop_smaller_front_element_queue();
-    if(!data_empty(merge_second)):
-      move_data_disk_to_disk(merge_first, merge_second, RAM_SORT_BLOCK_SIZE);
-    move_data_RAM_to_disk(RAM_Sorted, merged_data_size * 2 > merge_first.size + merge_second.size ? merge_second : merge_first);
-  mergeQueue.insert(merge_first + merge_second);
-return mergeQueue.front;
- 
+```C++
+divide_data(number_of_disk);  
+for i in 0 to number_of_disk, i++:  
+  internal_sort(disk[i]);  
+  mergeQueue.insert({i});  
+while(mergeQueue.size() > 1):  
+  merge_first = mergeQueue.front; mergeQueue.pop;  
+  merge_second = mergeQueue.front; mergeQueue.pop;  
+  for i, j in 0 to merge_first.size, merge_second.size, no change in the statement:  
+    if(RAM_Queue[0].empty):  
+      RAM_Queue[0].push(merge_first[i to i + RAM_SORT_BLOCK_SIZE / 2]);  
+      i += RAM_SORT_BLOCK_SIZE / 2;  
+    if(RAM_Queue[1].empty):  
+      RAM_Queue[1].push(get_proper_merge_second_location(merge_second[j to j + RAM_SORT_BLOCK_SIZE / 2]));  
+      j += RAM_SORT_BLOCK_SIZE / 2;  
+    while(!RAM_Queue[0].empty && !RAM_Queue[1].empty):  
+      RAM_Sorted.push_back(min(RAM_Queue[0].front, RAM_Queue[1].front));  
+      pop_smaller_front_element_queue();  
+    if(!data_empty(merge_second)):  
+      move_data_disk_to_disk(merge_first, merge_second, RAM_SORT_BLOCK_SIZE);  
+    move_data_RAM_to_disk(RAM_Sorted, merged_data_size * 2 > merge_first.size + merge_second.size ? merge_second : merge_first);  
+  mergeQueue.insert(merge_first + merge_second);  
+return mergeQueue.front;  
+ ```
