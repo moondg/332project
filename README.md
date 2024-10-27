@@ -58,21 +58,28 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Seeking useful librarys for implementing this project
 - Reading gRPC Docs
 
+### Week2
+
+#### Progress in the week
+- Configured project setting with *Metals, sbt, ScalaCheck*
+- Pseudo code based on merge sort
+- Design K-way merge using tournament tree between compute nodes
+- Apply Week1 feedback
+- Design network interaction
 
 #### Goal of the next week
 [@문동균](https://github.com/moondg)
-- Study how to perform distribution sort
-- Design key-value parsing
-- Design abstact structure of sorting (Sort/Partition, Shuffle)
+- Pseudo code for K-way merge
+- Pseudo code for IO
+- Design abstact structure of sorting (Shuffle)
 
 [@배재륜](https://github.com/bjr7000)
-- Study how to perform distribution sort
 - Study how to use multiple cores with scala
-- Design abstact structure of sorting (Merge, Sampling)
+- Pseudo code for key-value parsing
+- Design abstact structure of sorting (Sampling)
 
 [@이윤혁](https://github.com/a-nodi)  
 - Study how to use gRPC
-- Design network interaction of master and worker node
 
 ## Workflow
 Workflow based on TDD (Test Driven Development)
