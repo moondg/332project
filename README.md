@@ -130,3 +130,18 @@ while(mergeQueue.size() > 1):
   mergeQueue.insert(merge_first + merge_second);  
 return mergeQueue.front;  
  ```
+### Network interaction diagram
+#### parsing
+<img src="./img/pasring_network_design.png" width="1280" height="500">
+
+#### smapling
+<img src="./img/sampling_network_design.png" width="1280" height="500">
+
+#### internal sorting
+<img src="./img/internal_sorting_network_design.png" width="1280" height="500">
+
+#### shuffling
+<img src="./img/shuffle_network_design.png" width="1280" height="500">
+
+#### merging
+<img src="./img/merge_network_design.png" width="1280" height="500">
