@@ -2,17 +2,17 @@
 Upload CSED332(Software Design Method) group project works
 
 ## Index
-[1. Participants](#participants)  
-[2. Milestone](#milestone)  
-[3. Weekly Progress](#weekly-progress)  
-[4. Workflow](#workflow)  
+[1. Participants](#participants)
+[2. Milestone](#milestone)
+[3. Weekly Progress](#weekly-progress)
+[4. Workflow](#workflow)
 [5. Feedback](#feedback)
 
 ## Participants
 
-[@문동균](https://github.com/moondg)  
-[@배재륜](https://github.com/bjr7000)  
-[@이윤혁](https://github.com/a-nodi)  
+[@문동균](https://github.com/moondg)
+[@배재륜](https://github.com/bjr7000)
+[@이윤혁](https://github.com/a-nodi)
 
 ## Milestone
 Refering on the _The Mythical Man-Month_, the development period was divided into 3 parts
@@ -20,10 +20,10 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - 2. `Programming & Minor debuging phase` (~ Week 6)
 - 3. `System test, obtaining all components` (~ Week 8)
 
-### Milestone #1  
-- Establish connection between master and worker  
+### Milestone #1
+- Establish connection between master and worker
 - Design distributed sorting algorithm for this project
-- Generate sample input data for testing key-value parsing  
+- Generate sample input data for testing key-value parsing
 
 ### Milestone #2
 - Complete key-value parsing
@@ -35,7 +35,7 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 
 ### Milestone #4
 - Implement parsing
-- Implement shuffling  
+- Implement shuffling
 
 ### Milestone #5
 - Implement sorting
@@ -78,7 +78,7 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Pseudo code for key-value parsing
 - Design abstact structure of sorting (Sampling)
 
-[@이윤혁](https://github.com/a-nodi)  
+[@이윤혁](https://github.com/a-nodi)
 - Study how to use gRPC
 
 ## Workflow
@@ -93,7 +93,7 @@ Workflow based on TDD (Test Driven Development)
 - `Refactor`: Refactor code
 
 ### Branch convention
-- `main`: For release 
+- `main`: For release
 - `develop`: Merge test-passed features
 - `test-[TestName]`: Develop feature and testsuite
 
@@ -108,12 +108,12 @@ Workflow based on TDD (Test Driven Development)
 ### Pseudocode
 Master
 ```C++
-divide_data(number_of_worker); 
-for i in 0 to number_of_worker, i++:  
-  internal_sort(disk[i])  
+divide_data(number_of_worker);
+for i in 0 to number_of_worker, i++:
+  internal_sort(disk[i])
   queue.insert({i})
 merged = number_of_worker
-while(merged != 1): 
+while(merged != 1):
   concurrent_excute(send, receive)
 
 send:
@@ -190,6 +190,31 @@ receive:
     network_send(to: work_with.head, memory(disk_cursor ~ disk_cursor + BLOCK_SIZE))
     disk_push(RAM.received_msg)
     disk_cursor += BLOCK_SIZE
+```
+
+K-way merge sort:
+```haskell
+type Partition = [Key]
+
+ramPartition :: [Partition]
+ramPartition = divideRAM (numberOfDiskPartition + 1)
+
+buffer :: Partition
+buffer = head ramPartition
+
+partitionRAM :: [Partition]
+partitionRAM = tail partition
+
+popFrom storage popSize = take popSize storage
+
+-- `<-` means, copy data from right and paste to left
+copyRightToLeft left right = left <- right
+
+main = do
+  copyRightToLeft partitionRAM (map (popFrom partitionDisk ((length partitionRam) / k)))
+  insertTournamentTree (popFrom partitionRam 1)
+  buffer <- popTournamentTree
+  emptyBuffer
 ```
 
 ### Network interaction diagram
