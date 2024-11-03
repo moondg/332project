@@ -67,19 +67,30 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Apply Week1 feedback
 - Design network interaction
 
+### Week3
+
+#### Progress in the week
+- Pseudo code for K-way merge
+- Rough design for network and its exception
+- Divide pseudocode design into master & worker
+- Design abstact structure of sorting (Sampling)
+- Construct detailed network interation messages
+- Study how to use multiple cores with scala
+
 #### Goal of the next week
 [@문동균](https://github.com/moondg)
-- Pseudo code for K-way merge
 - Pseudo code for IO
 - Design abstact structure of sorting (Shuffle)
+- Design overall functions and test cases(mergesort)
 
 [@배재륜](https://github.com/bjr7000)
-- Study how to use multiple cores with scala
 - Pseudo code for key-value parsing
-- Design abstact structure of sorting (Sampling)
+- Design overall functions and test cases(sampling)
 
 [@이윤혁](https://github.com/a-nodi)
 - Study how to use gRPC
+- Design protobuf
+- Design overall functions and test cases(network)
 
 ## Workflow
 Workflow based on TDD (Test Driven Development)
@@ -228,21 +239,3 @@ worker - worker connection should be more simple
 
 #### merging
 <img src="./img/merge_network_design.png" width="1280" height="500">
-
-### Network Interaction Message
-|Message type|Content|Sender|Receiver|
-|:---:|:---:|:---:|:---:|
-|SyncronizationRequest|IP and port of worker|worker|master|
-|SyncronizationResponse|Boolean that indicates worker ip and ports are valid|master|worker
-|ParseRequest|No content|master|worker|
-|ParseResponse|Boolean that indicates parsing has been complete successfully|worker|master|
-|SamplingRequest|Number of wanted samples|master|worker|
-|SamplingResponse|Stream of sample keys|worker|master|
-|PartitioningRequest|No content|master|worker|
-|PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master 
-|InternalSortRequest|No content|master|worker|
-|InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
-|ShuffleRequest|Stream of data that should be exchanged, sending ip and port|worker|worker|
-|ShuffleResponse|Stream of data that should be exchanged, sending ip and port|worker|worker|
-|MergeRequest|No content|master|worker|
-|MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
