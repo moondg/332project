@@ -217,18 +217,37 @@ main = do
   emptyBuffer
 ```
 
-### Network interaction diagram
+### Network Interaction diagram
 #### parsing
 <img src="./img/pasring_network_design.png" width="1280" height="500">
 
-#### smapling
+#### sampling
 <img src="./img/sampling_network_design.png" width="1280" height="500">
 
 #### internal sorting
 <img src="./img/internal_sorting_network_design.png" width="1280" height="500">
 
-#### shuffling
+#### shuffling(Deprecated, Update needed)
+worker - worker connection should be more simple
 <img src="./img/shuffle_network_design.png" width="1280" height="500">
 
 #### merging
 <img src="./img/merge_network_design.png" width="1280" height="500">
+
+### Network Interaction Message
+|Message type|Content|Sender|Receiver|
+|:---:|:---:|:---:|:---:|
+|SyncronizationRequest|IP and port of worker|worker|master|
+|SyncronizationResponse|Boolean that indicates worker ip and ports are valid|master|worker
+|ParseRequest|No content|master|worker|
+|ParseResponse|Boolean that indicates parsing has been complete successfully|worker|master|
+|SamplingRequest|Number of wanted samples|master|worker|
+|SamplingResponse|Stream of sample keys|worker|master|
+|PartitioningRequest|No content|master|worker|
+|PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master 
+|InternalSortRequest|No content|master|worker|
+|InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
+|ShuffleRequest|Stream of data that should be exchanged|worker|worker|
+|ShuffleResponse|Stream of data that should be exchanged|worker|worker|
+|MergeRequest|No content|master|worker|
+|MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
