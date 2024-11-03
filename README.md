@@ -193,28 +193,23 @@ receive:
 ```
 
 K-way merge sort:
-```haskell
-type Partition = [Key]
+```C++
+#define Partition = List[Key]
 
-ramPartition :: [Partition]
-ramPartition = divideRAM (numberOfDiskPartition + 1)
+void copyDiskToRAM(Integer size, Partition storage)
+void divideRAM(Integer number)
 
-buffer :: Partition
-buffer = head ramPartition
+void K_Merge(k:Integer) {
+  partition = dividerRAM(k)
+  copyDiskToRAM(RAM_SIZE/(k+1), Disk)
+  for i 1 to k:
+    insertTournamentTree(pop(partition[i]))
+  buffer << popTournamentTree
+  buffer.empty
+}
 
-partitionRAM :: [Partition]
-partitionRAM = tail partition
-
-popFrom storage popSize = take popSize storage
-
--- `<-` means, copy data from right and paste to left
-copyRightToLeft left right = left <- right
-
-main = do
-  copyRightToLeft partitionRAM (map (popFrom partitionDisk ((length partitionRam) / k)))
-  insertTournamentTree (popFrom partitionRam 1)
-  buffer <- popTournamentTree
-  emptyBuffer
+while !Disk.empty:
+  K_Merge(k)
 ```
 
 ### Network Interaction diagram
