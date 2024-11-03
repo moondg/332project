@@ -242,7 +242,7 @@ worker - worker connection should be more simple
 |PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master 
 |InternalSortRequest|No content|master|worker|
 |InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
-|ShuffleRequest|Stream of data that should be exchanged|worker|worker|
-|ShuffleResponse|Stream of data that should be exchanged|worker|worker|
+|ShuffleRequest|Stream of data that should be exchanged, sending ip and port|worker|worker|
+|ShuffleResponse|Stream of data that should be exchanged, sending ip and port|worker|worker|
 |MergeRequest|No content|master|worker|
 |MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
