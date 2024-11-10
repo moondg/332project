@@ -1,5 +1,5 @@
 import Key._
-import Record._
+// import Record._
 
 import org.scalacheck._
 import Prop.forAll
@@ -31,10 +31,10 @@ object KeyValueSpecification extends Properties("Key") {
 object RecordSpecification extends Properties("Record") {
   val recordTestCase = Seq(
     new Record(
-      "@(4i_3nc#M",
-      "000000981234098333939393339392390233290232390232390233290223902344303434894334893455855853"),
-    new Record(
       "+#P3n-]RE{",
-      "000000013492134098751765416901253906213625908615290681234908123490845161258906231479023412"))
+      "000000013492134098751765416901253906213625908615290681234908123490845161258906231479023412"),
+    new Record(
+      "@(4i_3nc#M",
+      "000000981234098333939393339392390233290232390232390233290223902344303434894334893455855853"))
   property("Record ordering") = Prop.all(recordTestCase.sorted == recordTestCase)
 }
