@@ -83,17 +83,12 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Design abstact structure of sorting (Shuffle)
 - Design overall functions and test cases(mergesort)
 
-[@배재륜](https://github.com/bjr7000)
-- Pseudo code for key-value parsing
-- Design overall functions and test cases(sampling)
-
-
-
 ### Week4
 - Removed network worker-worker interaction
 - Plan for handling packet loss
 - Planned disconnection recovery
 - Use concorrent programming to prevent master bottleneck
+- Implemented basic structure & case object for message and state
 
 #### Goal of the next week
 [@이윤혁](https://github.com/a-nodi)
