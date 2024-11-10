@@ -114,6 +114,14 @@ Workflow based on TDD (Test Driven Development)
 - No need to follow Mythical Man Month strictly: Update development cycle by merging programming phase and testing/debuging phase.
 - Parsing/Sort/Partition/Shuffle, Merge/Sampling is closely related: Well-defined interface needed, extra effort for communication needed.
 - TDD's idea is "test is a some kind of document": Record TDD application for docs with details.
+### Week 2
+- Check pseudocode: Partitioning and Shuffling
+- Introducing proper locking mechanism
+- Network defect: reconnect between nodes and recovering network
+### Week 3
+- Tournament tree: initialization, save, data type, metadata
+- Network interaction: role of Master, necessity of Worker-Worker
+- Flexibly divide compoents: interaction may contain multiple messages. For example, network disconnection.
 
 ## Design
 ### Pseudocode
@@ -203,26 +211,6 @@ receive:
     disk_cursor += BLOCK_SIZE
 ```
 
-K-way merge sort:
-```C++
-#define Partition = List[Key]
-
-void copyDiskToRAM(Integer size, Partition storage)
-void divideRAM(Integer number)
-
-void K_Merge(k:Integer) {
-  partition = dividerRAM(k)
-  copyDiskToRAM(RAM_SIZE/(k+1), Disk)
-  for i 1 to k:
-    insertTournamentTree(pop(partition[i]))
-  buffer << popTournamentTree
-  buffer.empty
-}
-
-while !Disk.empty:
-  K_Merge(k)
-```
-
 ### Network Interaction diagram
 #### parsing
 <img src="./img/pasring_network_design.png" width="1280" height="500">
@@ -250,7 +238,7 @@ worker - worker connection should be more simple
 |SamplingRequest|Number of wanted samples|master|worker|
 |SamplingResponse|Stream of sample keys|worker|master|
 |PartitioningRequest|No content|master|worker|
-|PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master 
+|PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master
 |InternalSortRequest|No content|master|worker|
 |InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
 |ShuffleRequest|Stream of data that should be exchanged, sending ip and port|worker|worker|
