@@ -87,8 +87,16 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Pseudo code for key-value parsing
 - Design overall functions and test cases(sampling)
 
+
+
+### Week4
+- Removed network worker-worker interaction
+- Plan for handling packet loss
+- Planned disconnection recovery
+- Use concorrent programming to prevent master bottleneck
+
+#### Goal of the next week
 [@이윤혁](https://github.com/a-nodi)
-- Study how to use gRPC
 - Design protobuf
 - Design overall functions and test cases(network)
 
@@ -114,14 +122,16 @@ Workflow based on TDD (Test Driven Development)
 - No need to follow Mythical Man Month strictly: Update development cycle by merging programming phase and testing/debuging phase.
 - Parsing/Sort/Partition/Shuffle, Merge/Sampling is closely related: Well-defined interface needed, extra effort for communication needed.
 - TDD's idea is "test is a some kind of document": Record TDD application for docs with details.
+
 ### Week 2
 - Check pseudocode: Partitioning and Shuffling
 - Introducing proper locking mechanism
 - Network defect: reconnect between nodes and recovering network
+
 ### Week 3
 - Tournament tree: initialization, save, data type, metadata
 - Network interaction: role of Master, necessity of Worker-Worker
-- Flexibly divide compoents: interaction may contain multiple messages. For example, network disconnection.
+- Flexibly divide components: interaction may contain multiple messages For example, network disconnection can be problem for this.
 
 ## Design
 ### Pseudocode
@@ -211,7 +221,49 @@ receive:
     disk_cursor += BLOCK_SIZE
 ```
 
-### Network Interaction diagram
+
+### Network Interaction 
+
+Plan for handling packet loss
+```
+TCP-like acknowlegement message: All Messages have their own TCP-like acknowlegement message to ensure the message sendings were performed well.  
+Timeout: If acknowlegement message doesn't arrive during speific time(e.g. timeout), resend the message.
+```
+
+Plan for handling disconnection
+```
+Use TCP-like exponential backoff to not spem reconnection tries.
+To recover from disconnection, create checkpoint tokens and manipulate with queue for each master-worker connection.
+Checkpoints should be orderly enqueued, dequeue checkpoints that has been passed
+Should not init checkpoint queue at start of the program; shuffling-like phase needs multiple checkpoints to ensure atomic  
+Need testcases that causes disconnection intentionally.
+```
+
+Plan for network interaction enhancement
+```
+Remove worker-worker direction communication.
+All data communications are now fully controlled by master
+To prevent bottleneck of master caused by multiple network connection, handle network connection concurrently.
+Use semaphore with max value 1 to implement locking mechanism.
+```
+
+|Message type|Content|Sender|Receiver|
+|:---:|:---:|:---:|:---:|
+|SyncronizationRequest|IP and port of worker|worker|master|
+|SyncronizationResponse|Boolean that indicates worker ip and ports are valid|master|worker
+|ParseRequest|No content|master|worker|
+|ParseResponse|Boolean that indicates parsing has been complete successfully|worker|master|
+|SamplingRequest|Number of wanted samples|master|worker|
+|SamplingResponse|Stream of sample keys|worker|master|
+|PartitioningRequest|No content|master|worker|
+|PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master
+|InternalSortRequest|No content|master|worker|
+|InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
+|ShuffleRequest|Stream of data that should be exchanged, sending ip and port|worker|master|
+|ShuffleResponse|Stream of data that should be exchanged, sending ip and port|master|worker|
+|MergeRequest|No content|master|worker|
+|MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
+
 #### parsing
 <img src="./img/pasring_network_design.png" width="1280" height="500">
 
@@ -227,21 +279,3 @@ worker - worker connection should be more simple
 
 #### merging
 <img src="./img/merge_network_design.png" width="1280" height="500">
-
-### Network Interaction Message
-|Message type|Content|Sender|Receiver|
-|:---:|:---:|:---:|:---:|
-|SyncronizationRequest|IP and port of worker|worker|master|
-|SyncronizationResponse|Boolean that indicates worker ip and ports are valid|master|worker
-|ParseRequest|No content|master|worker|
-|ParseResponse|Boolean that indicates parsing has been complete successfully|worker|master|
-|SamplingRequest|Number of wanted samples|master|worker|
-|SamplingResponse|Stream of sample keys|worker|master|
-|PartitioningRequest|No content|master|worker|
-|PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master
-|InternalSortRequest|No content|master|worker|
-|InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
-|ShuffleRequest|Stream of data that should be exchanged, sending ip and port|worker|worker|
-|ShuffleResponse|Stream of data that should be exchanged, sending ip and port|worker|worker|
-|MergeRequest|No content|master|worker|
-|MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
