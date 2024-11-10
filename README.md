@@ -77,12 +77,6 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Construct detailed network interation messages
 - Study how to use multiple cores with scala
 
-#### Goal of the next week
-[@문동균](https://github.com/moondg)
-- Pseudo code for IO
-- Design abstact structure of sorting (Shuffle)
-- Design overall functions and test cases(mergesort)
-
 ### Week4
 - Removed network worker-worker interaction
 - Plan for handling packet loss
@@ -91,6 +85,14 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Implemented basic structure & case object for message and state
 
 #### Goal of the next week
+[@문동균](https://github.com/moondg)
+- Pseudo code for IO
+- Design abstact structure of sorting (Shuffle)
+- Design overall functions and test cases(mergesort)
+
+[@배재륜](https://github.com/bjr7000)
+- Server & Client message send implementation
+
 [@이윤혁](https://github.com/a-nodi)
 - Design protobuf
 - Design overall functions and test cases(network)
