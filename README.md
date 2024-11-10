@@ -83,12 +83,12 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Planned disconnection recovery
 - Use concorrent programming to prevent master bottleneck
 - Implemented basic structure & case object for message and state
+- Implemented Key-Value parsing and made simple test cases
 
 #### Goal of the next week
 [@문동균](https://github.com/moondg)
-- Pseudo code for IO
-- Design abstact structure of sorting (Shuffle)
-- Design overall functions and test cases(mergesort)
+- Design abstact structure of Shuffle
+- Implement sampling
 
 [@배재륜](https://github.com/bjr7000)
 - Server & Client message send implementation
@@ -219,11 +219,11 @@ receive:
 ```
 
 
-### Network Interaction 
+### Network Interaction
 
 Plan for handling packet loss
 ```
-TCP-like acknowlegement message: All Messages have their own TCP-like acknowlegement message to ensure the message sendings were performed well.  
+TCP-like acknowlegement message: All Messages have their own TCP-like acknowlegement message to ensure the message sendings were performed well.
 Timeout: If acknowlegement message doesn't arrive during speific time(e.g. timeout), resend the message.
 ```
 
@@ -232,7 +232,7 @@ Plan for handling disconnection
 Use TCP-like exponential backoff to not spem reconnection tries.
 To recover from disconnection, create checkpoint tokens and manipulate with queue for each master-worker connection.
 Checkpoints should be orderly enqueued, dequeue checkpoints that has been passed
-Should not init checkpoint queue at start of the program; shuffling-like phase needs multiple checkpoints to ensure atomic  
+Should not init checkpoint queue at start of the program; shuffling-like phase needs multiple checkpoints to ensure atomic
 Need testcases that causes disconnection intentionally.
 ```
 
