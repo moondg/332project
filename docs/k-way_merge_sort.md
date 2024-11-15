@@ -3,7 +3,7 @@
 ## Pseudocode
 
 ```C++
-#define Partition = List[Key]
+#define Partition = List[Record]
 
 void copyDiskToRAM(Integer size, Partition storage)
 void divideRAM(Integer number)
