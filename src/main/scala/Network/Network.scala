@@ -3,20 +3,26 @@ package Network
 import scala.concurrent.{ExecutionContext, Future, Promise, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.collection.mutable.Map
+import scala.util.{Success, Failure}
+
+import java.util.concurrent.TimeUnit
 
 import Common._
 
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver;
 
-class NetworkServer {
+class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
   var state: MasterState = MASTER_INITIAL
   val clients = ???
 
   def start_server(): Unit = {
-    server = ???
+    server = ServerBuilder.forport(port)
+      .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
+      .build().start()
   }
 
   def ongoing_server(): Unit = {
@@ -27,7 +33,7 @@ class NetworkServer {
 
   def stop_server(): Unit = {
     if(server != null){
-
+      server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
     }
   }
 
@@ -42,13 +48,23 @@ class NetworkServer {
     }
 
     f.onComplete {
+      case Success(v) => {
 
+      }
+      case Failure(e) => {
+
+      }
     }
 
   }
 
 
 }
+
+class ServerImpl extends ConnectionGrpc.Connection {
+
+}
+
 
 class NetworkClient {
 
