@@ -31,7 +31,7 @@ class NetworkServer {
     }
   }
 
-  def send_msg_to_client(): Unit = {
+  def send_msg_to_client(msg: Message): Unit = {
 
   }
 
@@ -60,7 +60,7 @@ class NetworkClient {
     client_id = ???
   }
 
-  def send_msg_to_server(): Unit = {
+  def send_msg_to_server(msg: Message): Unit = {
 
   }
 
