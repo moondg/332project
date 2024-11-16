@@ -1,4 +1,3 @@
-
 // The simplest possible sbt build file is just one line:
 
 scalaVersion := "2.13.12"
@@ -20,7 +19,6 @@ version := "1.0"
 // Note, it's not required for you to define these three settings. These are
 // mostly only necessary if you intend to publish your library's binaries on a
 // place like Sonatype.
-
 
 // Want to use a published library in your project?
 // You can define other libraries as dependencies in your build like this:
@@ -79,3 +77,14 @@ libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.17.0" % "test"
 
 // To learn more about multi-project builds, head over to the official sbt
 // documentation at http://www.scala-sbt.org/documentation.html
+
+libraryDependencies ++= Seq(
+  "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
+  "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion)
+
+Compile / PB.targets := Seq(scalapb.gen() -> (Compile / sourceManaged).value / "scalapb")
+
+// (optional) If you need scalapb/scalapb.proto or anything from
+// google/protobuf/*.proto
+libraryDependencies ++= Seq(
+  "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf")
