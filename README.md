@@ -86,7 +86,10 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Implemented Key-Value parsing and made simple test cases
 
 ### Week5
-- Chose gRPC to implement network function
+- Added gRPC and protobuf to project settings
+- Tested simple gRPC messaging using localhost
+- Added protobuf for test messaging
+- Chose FSM to track-control the worker's state and master's state
 - Implemented server starting
 - Chose log4j to take log from runtime
 
@@ -97,10 +100,12 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 
 [@배재륜](https://github.com/bjr7000)
 - Implement logging code
+- Design FSM to track-control master's sorting state
 
 [@이윤혁](https://github.com/a-nodi)
-- Design protobuf
-- Design overall functions and test cases(network)
+- Design protobuf (now implement orderly with sorting implementation steps)
+- Design FSM to track-control multiple worker's state from master
+- Make detail of TCP-like network interaction
 
 ## Workflow
 Workflow based on TDD (Test Driven Development)
@@ -125,15 +130,18 @@ Workflow based on TDD (Test Driven Development)
 - Parsing/Sort/Partition/Shuffle, Merge/Sampling is closely related: Well-defined interface needed, extra effort for communication needed.
 - TDD's idea is "test is a some kind of document": Record TDD application for docs with details.
 
-### Week 2
-- Check pseudocode: Partitioning and Shuffling
-- Introducing proper locking mechanism
-- Network defect: reconnect between nodes and recovering network
+### Week 2 (Applied)
+- Check pseudocode: Partitioning and Shuffling.
+- Introducing proper locking mechanism.
+- Network defect: reconnect between nodes and recovering network.
 
-### Week 3
-- Tournament tree: initialization, save, data type, metadata
-- Network interaction: role of Master, necessity of Worker-Worker
+### Week 3 (Applied)
+- Tournament tree: initialization, save, data type, metadata.
+- Network interaction: role of Master, necessity of Worker-Worker.
 - Flexibly divide components: interaction may contain multiple messages For example, network disconnection can be problem for this.
+
+### Week 4
+- Testnames: Use Testnames that represent the tested object and normaility well
 
 ## Design
 ### Pseudocode
