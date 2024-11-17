@@ -1,5 +1,5 @@
 import Key._
-// import Record._
+import Record._
 
 import org.scalacheck._
 import Prop.forAll
@@ -37,4 +37,15 @@ object RecordSpecification extends Properties("Record") {
       "@(4i_3nc#M",
       "000000981234098333939393339392390233290232390232390233290223902344303434894334893455855853"))
   property("Record ordering") = Prop.all(recordTestCase.sorted == recordTestCase)
+}
+
+object PartitionTest extends Properties("Partition") {
+  val data = Stream(
+    "!@#$%^&*()000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+    "QWERTYUIOP000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
+    "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003")
+  val partitionTestCase = new Partition(data.map { convertFromString(_) })
+  val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP")
+  property("Partition sampling") =
+    Prop.all(partitionTestCase.sampling(2).map { convertFromRecord(_).key } == samplingAnswer)
 }
