@@ -22,8 +22,8 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 
 ### Milestone #1
 - Establish connection between master and worker
-- Design distributed sorting algorithm for this project
-- Generate sample input data for testing key-value parsing
+- ~~Design distributed sorting algorithm for this project~~
+- ~~Generate sample input data for testing key-value parsing~~
 
 ### Milestone #2
 - Complete key-value parsing
