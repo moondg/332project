@@ -1,6 +1,5 @@
 import Key._
-// import Record._
-import Partition._
+import Record._
 
 import org.scalacheck._
 import Prop.forAll
@@ -41,11 +40,12 @@ object RecordSpecification extends Properties("Record") {
 }
 
 object PartitionTest extends Properties("Partition") {
-  lazy val partitionTestCase = Partition(
-    Stream(
-      "!@#$%^&*()000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
-      "QWERTYUIOP000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
-      "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003"))
-  val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP", "Z<X>OJWDKm")
-  property("Partition sampling") = Prop.all(partitionTestCase.sampling() == samplingAnswer)
+  val data = Stream(
+    "!@#$%^&*()000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+    "QWERTYUIOP000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
+    "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003")
+  val partitionTestCase = new Partition(data.map { convertFromString(_) })
+  val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP")
+  property("Partition sampling") =
+    Prop.all(partitionTestCase.sampling(2).map { convertFromRecord(_).key } == samplingAnswer)
 }

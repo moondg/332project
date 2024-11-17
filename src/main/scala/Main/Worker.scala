@@ -1,4 +1,6 @@
 import Network.NetworkClient
+import Record._
+import Key._
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -15,8 +17,8 @@ object Worker {
 
   }
 
-  lazy val partition = ??? // TODO
+  private lazy val partition: Partition = ??? // TODO
   def sampling(size: Int): Stream[Key] = {
-    partition.sampling(size).map(_.getKey)
+    partition.sampling(size).map(convertFromRecord(_))
   }
 }
