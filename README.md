@@ -85,13 +85,18 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Implemented basic structure & case object for message and state
 - Implemented Key-Value parsing and made simple test cases
 
+### Week5
+- Chose gRPC to implement network function
+- Implemented server starting
+- Chose log4j to take log from runtime
+
 #### Goal of the next week
 [@문동균](https://github.com/moondg)
 - Design abstact structure of Shuffle
 - Implement sampling
 
 [@배재륜](https://github.com/bjr7000)
-- Server & Client message send implementation
+- Implement logging code
 
 [@이윤혁](https://github.com/a-nodi)
 - Design protobuf
