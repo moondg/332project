@@ -7,13 +7,16 @@ object Worker {
     try {
       network.connect_to_server()
 
-    }
-    catch {
+    } catch {
       case except: Exception => println(except)
-    }
-    finally {
+    } finally {
       network.shutdown()
     }
 
+  }
+
+  lazy val partition = ??? // TODO
+  def sampling(size: Int): Stream[Key] = {
+    partition.sampling(size).map(_.getKey)
   }
 }

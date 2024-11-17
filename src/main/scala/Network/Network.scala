@@ -1,25 +1,25 @@
-package Network
+// package Network
 
-import scala.concurrent.{ExecutionContext, Future, Promise, Await}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.collection.mutable.Map
-import scala.util.{Success, Failure}
+// import scala.concurrent.{ExecutionContext, Future, Promise, Await}
+// import scala.concurrent.ExecutionContext.Implicits.global
+// import scala.concurrent.duration._
+// import scala.collection.mutable.Map
+// import scala.util.{Success, Failure}
 
-import java.util.concurrent.TimeUnit
+// import java.util.concurrent.TimeUnit
 
-import Common._
+// import Common._
 
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver;
 
 import message.gRPCtest.{ConnectionGrpc, TestRequest, TestResponse}
 
-class NetworkServer(port: Int, executionContext: ExecutionContext) {
+// class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
-  var server: Server = null
-  var state: MasterState = MASTER_INITIAL
-  val clients = ???
+//   var server: Server = null
+//   var state: MasterState = MASTER_INITIAL
+//   val clients = ???
 
   def start_server(): Unit = {
     server = ServerBuilder
@@ -41,7 +41,7 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   def send_msg_to_client(msg: Message): Unit = {}
 
-  def pivot_check(): Unit = {
+//   def pivot_check(): Unit = {
 
     val f = Future {}
 
@@ -65,13 +65,13 @@ class ServerImpl extends ConnectionGrpc.Connection {
 
 class NetworkClient {
 
-  var client_id: Int = -1
-  var state: WorkerState = WORKER_INITIAL
+//   var client_id: Int = -1
+//   var state: WorkerState = WORKER_INITIAL
 
-  def connect_to_server(): Unit = {
-    val respond = ???
-    client_id = ???
-  }
+//   def connect_to_server(): Unit = {
+//     val respond = ???
+//     client_id = ???
+//   }
 
   def send_msg_to_server(msg: Message): Unit = {}
 
