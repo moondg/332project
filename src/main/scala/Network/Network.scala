@@ -13,6 +13,8 @@ import Common._
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver;
 
+import message.gRPCtest.{ConnectionGrpc, TestRequest, TestResponse}
+
 class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
@@ -20,51 +22,46 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
   val clients = ???
 
   def start_server(): Unit = {
-    server = ServerBuilder.forport(port)
+    server = ServerBuilder
+      .forPort(port)
       .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
-      .build().start()
+      .build()
+      .start()
   }
 
   def ongoing_server(): Unit = {
-    if(server != null){
-
-    }
+    if (server != null) {}
   }
 
   def stop_server(): Unit = {
-    if(server != null){
+    if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
     }
   }
 
-  def send_msg_to_client(msg: Message): Unit = {
-
-  }
+  def send_msg_to_client(msg: Message): Unit = {}
 
   def pivot_check(): Unit = {
 
-    val f = Future {
-
-    }
+    val f = Future {}
 
     f.onComplete {
-      case Success(v) => {
-
-      }
-      case Failure(e) => {
-
-      }
+      case Success(v) => {}
+      case Failure(e) => {}
     }
 
   }
-
 
 }
 
 class ServerImpl extends ConnectionGrpc.Connection {
-
+  override def testMethod(
+      request: message.gRPCtest.TestRequest): Future[message.gRPCtest.TestResponse] = {
+    // Implement your logic here
+    val response = message.gRPCtest.TestResponse(reply = "Your response message")
+    Future.successful(response)
+  }
 }
-
 
 class NetworkClient {
 
@@ -76,9 +73,7 @@ class NetworkClient {
     client_id = ???
   }
 
-  def send_msg_to_server(msg: Message): Unit = {
-
-  }
+  def send_msg_to_server(msg: Message): Unit = {}
 
   def shutdown(): Unit = {
     state = WORKER_DONE
