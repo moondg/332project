@@ -19,7 +19,7 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
   var state: MasterState = MASTER_INITIAL
-  val clients = ???
+  val clients = List[WorkerStatus]
 
   def start_server(): Unit = {
     server = ServerBuilder
@@ -39,7 +39,7 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
     }
   }
 
-  def send_msg_to_client(msg: Message): Unit = {}
+  def send_msg(msg: Message): Unit = {}
 
   def pivot_check(): Unit = {
 
@@ -49,6 +49,10 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
       case Success(v) => {}
       case Failure(e) => {}
     }
+
+  }
+
+  def divide_part(): Unit = {
 
   }
 
@@ -67,13 +71,14 @@ class NetworkClient {
 
   var client_id: Int = -1
   var state: WorkerState = WORKER_INITIAL
+  var server: Server = null
 
   def connect_to_server(): Unit = {
     val respond = ???
     client_id = ???
   }
 
-  def send_msg_to_server(msg: Message): Unit = {}
+  def send_msg(msg: Message): Unit = {}
 
   def shutdown(): Unit = {
     state = WORKER_DONE
