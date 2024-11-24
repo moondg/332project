@@ -19,9 +19,9 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
   var state: MasterState = MASTER_INITIAL
-  val clients = List[WorkerStatus]
+  val clients: List[WorkerStatus] = ???
 
-  def start_server(): Unit = {
+  def startServer(): Unit = {
     server = ServerBuilder
       .forPort(port)
       .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
@@ -30,7 +30,7 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
     state = MASTER_GET_SAMPLE
   }
 
-  def ongoing_server(): Unit = {
+  def ongoingServer(): Unit = {
     while (server != null && state != MASTER_DONE) {
       state match {
         case MASTER_GET_SAMPLE => {
@@ -39,14 +39,12 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
         case MASTER_MAKE_PARTITION => {
           divide_part()
         }
-        case MASTER_WAIT_SORT => {
-
-        }
+        case MASTER_WAIT_SORT => {}
       }
     }
   }
 
-  def stop_server(): Unit = {
+  def stopServer(): Unit = {
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
       state = MASTER_FINISH
@@ -70,9 +68,7 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   }
 
-  def divide_part(): Unit = {
-
-  }
+  def divide_part(): Unit = {}
 
 }
 
@@ -103,15 +99,9 @@ class NetworkClient {
     state = WORKER_DONE
   }
 
-  def send_sample(): Unit = {
+  def send_sample(): Unit = {}
 
-  }
+  def send_unmatched_data(): Unit = {}
 
-  def send_unmatched_data(): Unit = {
-
-  }
-
-  def wait_until_all_data_received(): Unit = {
-
-  }
+  def wait_until_all_data_received(): Unit = {}
 }

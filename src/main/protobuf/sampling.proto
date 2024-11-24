@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package message;
+
+import "common.proto";
+
+service SamplingService {
+    rpc PerformSampling (SampleRequest) returns (SampleResponse);
+}
+
+// Master -> Worker 
+message SampleRequest {
+    string workerIp = 1;
+    int32 workerPort = 2;
+
+    repeated DataChunk sample = 3;
+}
+
+// Worker -> Master
+message SampleResponse {
+    bool isSampliingSuccessful = 1;
+}

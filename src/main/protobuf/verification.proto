@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package message;
+
+import "common.proto";
+
+service VerificationService {
+    rpc VerifyKeyRange (VerificationRequest) returns (VerificationResponse);
+}
+
+// Master -> Worker 
+message VerificationRequest {
+    string masterIp = 1;
+    int32 masterPort = 2;
+
+    string workerIp = 3;
+    int32 workerPort = 4;
+}
+
+// Worker -> Master
+message VerificationResponse {
+    KeyRange range = 1;
+}

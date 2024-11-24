@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package message;
+
+service MergeService {
+    rpc PerformInternalSort (MergeRequest) returns (MergeResponse);
+}
+
+// Master -> Worker 
+message MergeRequest {
+    string masterIp = 1;
+    int32 masterPort = 2;
+
+    string workerIp = 3;
+    int32 workerPort = 4;
+}
+
+// Worker -> Master
+message MergeResponse {
+    bool isMergeSuccessful = 1;
+}

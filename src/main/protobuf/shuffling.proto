@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package message;
+
+import "common.proto";
+
+service ShuffleService {
+    rpc RunShuffle (ShuffleRunRequest) returns (ShuffleRunResponse);
+
+    rpc ExchangeData (ShuffleExchangeRequest) returns (ShuffleExchangeResponse);
+}
+
+// Master -> Worker
+message ShuffleRunRequest {
+    string workerIp = 1;
+    string workerPort = 2;
+}
+
+// Worker -> Master
+message ShuffleRunResponse {
+    bool isShufflingSuccessful = 1;
+}
+
+// Worker -> Worker 
+message ShuffleExchangeRequest {
+    string sourceIp = 1;
+    int32 sourcePort = 2;
+
+    string destinationIp = 3;
+    int32 destinationPort = 4;
+}
+
+// Worker -> Worker
+message ShuffleExchangeResponse {
+    string sourceIp = 1;
+    int32 sourcePort = 2;
+
+    string destinationIp = 3;
+    int32 destinationPort = 4;
+
+    repeated DataChunk data = 5; 
+}

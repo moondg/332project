@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package message;
+
+import "common.proto";
+
+service PartitionService {
+
+    rpc PerformPartition (PartitionRequest) returns (PartitionResponse);
+}
+
+// Master -> Worker 
+message PartitionRequest {
+    string workerIp = 3;
+    int32 workerPort = 4;
+
+    KeyRangeTable table = 5;
+}
+
+// Worker -> Master
+message PartitionResponse {
+    bool isPartitioningSuccessful = 1;
+}

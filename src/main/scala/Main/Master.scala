@@ -6,12 +6,12 @@ object Master {
     val network = new NetworkServer(port = 50051, executionContext = ExecutionContext.global)
 
     try {
-      network.start_server()
-      network.ongoing_server()
+      network.startServer()
+      network.ongoingServer()
     } catch {
       case except: Exception => println(except)
     } finally {
-      network.stop_server()
+      network.stopServer()
     }
   }
 }
