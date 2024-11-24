@@ -142,10 +142,20 @@ Workflow based on TDD (Test Driven Development)
 - Network interaction: role of Master, necessity of Worker-Worker.
 - Flexibly divide components: interaction may contain multiple messages For example, network disconnection can be problem for this.
 
-### Week 4
+### Week 4 (WIP)
 - Testnames: Use Testnames that represent the tested object and normaility well
 
+### Week 5 (WIP)
+- Network connection: Test master - worker connection establishment
+
+### Progress presentation (Applied)
+- Major Design problem: No worker -> master -> worker data exchange sequential running will happen.
+
+- Internal Sorting phase problem: Internal sorting should be perform in other phase 
+
 ## Design
+
+**expired design, should be updated**
 ### Pseudocode
 Master
 ```C++
@@ -238,13 +248,12 @@ receive:
 
 Plan for handling packet loss
 ```
-TCP-like acknowlegement message: All Messages have their own TCP-like acknowlegement message to ensure the message sendings were performed well.
+TCP-like acknowlegement number and EOF: Messages that sends multiple data packets should have their own TCP-like acknowlegement number to ensure the message sendings were performed well.
 Timeout: If acknowlegement message doesn't arrive during speific time(e.g. timeout), resend the message.
 ```
 
 Plan for handling disconnection
 ```
-Use TCP-like exponential backoff to not spem reconnection tries.
 To recover from disconnection, create checkpoint tokens and manipulate with queue for each master-worker connection.
 Checkpoints should be orderly enqueued, dequeue checkpoints that has been passed
 Should not init checkpoint queue at start of the program; shuffling-like phase needs multiple checkpoints to ensure atomic
@@ -253,10 +262,11 @@ Need testcases that causes disconnection intentionally.
 
 Plan for network interaction enhancement
 ```
-Remove worker-worker direction communication.
-All data communications are now fully controlled by master
-To prevent bottleneck of master caused by multiple network connection, handle network connection concurrently.
-Use semaphore with max value 1 to implement locking mechanism.
+All communications should be tracked by master, can use FSM to track the worker's state
+To prevent bottleneck of each master/worker caused by multiple network connection, handle network connection concurrently.
+Establish connections using multiple threads
+for each worker - worker connection for shuffling, create Input thread and output thread. 
+Use locking mechanism to prevent racing while sending/receiving the datas
 ```
 
 |Message type|Content|Sender|Receiver|
@@ -275,19 +285,3 @@ Use semaphore with max value 1 to implement locking mechanism.
 |ShuffleResponse|Stream of data that should be exchanged, sending ip and port|master|worker|
 |MergeRequest|No content|master|worker|
 |MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
-
-#### parsing
-<img src="./img/pasring_network_design.png" width="1280" height="500">
-
-#### sampling
-<img src="./img/sampling_network_design.png" width="1280" height="500">
-
-#### internal sorting
-<img src="./img/internal_sorting_network_design.png" width="1280" height="500">
-
-#### shuffling(Deprecated, Update needed)
-worker - worker connection should be more simple
-<img src="./img/shuffle_network_design.png" width="1280" height="500">
-
-#### merging
-<img src="./img/merge_network_design.png" width="1280" height="500">
