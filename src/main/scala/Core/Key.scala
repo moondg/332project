@@ -1,9 +1,14 @@
-object Key {
-  def convertFromRecord(record: Record): Key = {
-    new Key(record.key)
-  }
-}
+package Core
 
-class Key(val key: String) extends Ordered[Key] {
-  override def compare(that: Key): Int = this.key `compare` that.key
+object Key {
+  type Key = String
+
+  class KeyRange(val start: Key, val end: Key) {
+    def contains(key: Key): Boolean = {
+      start <= key && key <= end
+    }
+    def contains(record: Record): Boolean = {
+      start <= record.key && record.key <= end
+    }
+  }
 }
