@@ -23,9 +23,11 @@ class WorkerStatus(ip_args: String, port_args: Int) {
   var state: WorkerState = WORKER_INITIAL
 }
 
-class Message(which_type_of_msg: MessageType, what_msg: String, to_whom_ip: String, to_whom_port: Int) {
+class Message(which_type_of_msg: MessageType, what_msg: String, to_whom_ip: String, to_whom_port: Int, from_whom_ip: String, from_whom_port: Int) {
   val msgType: MessageType = which_type_of_msg
   val msg: String = what_msg
   val ip: String = to_whom_ip
   val port: Int = to_whom_port
+  val sender_ip: String = from_whom_ip
+  val sender_port: Int = from_whom_port
 }
