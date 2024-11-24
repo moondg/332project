@@ -151,7 +151,7 @@ Workflow based on TDD (Test Driven Development)
 ### Progress presentation (Applied)
 - Major Design problem: No worker -> master -> worker data exchange sequential running will happen.
 
-- Internal Sorting phase problem: Internal sorting should be perform in other phase 
+- Internal Sorting phase problem: Internal sorting should be perform in other phase
 
 ## Design
 
@@ -265,23 +265,25 @@ Plan for network interaction enhancement
 All communications should be tracked by master, can use FSM to track the worker's state
 To prevent bottleneck of each master/worker caused by multiple network connection, handle network connection concurrently.
 Establish connections using multiple threads
-for each worker - worker connection for shuffling, create Input thread and output thread. 
+for each worker - worker connection for shuffling, create Input thread and output thread.
 Use locking mechanism to prevent racing while sending/receiving the datas
 ```
 
 |Message type|Content|Sender|Receiver|
 |:---:|:---:|:---:|:---:|
-|SyncronizationRequest|IP and port of worker|worker|master|
-|SyncronizationResponse|Boolean that indicates worker ip and ports are valid|master|worker
-|ParseRequest|No content|master|worker|
-|ParseResponse|Boolean that indicates parsing has been complete successfully|worker|master|
-|SamplingRequest|Number of wanted samples|master|worker|
+|EstablishRequest|Ip and port of worker and master|worker|master|
+|EstablishResponse|Boolean that indicates connection between master and worker has been established well|master|worker
+|SamplingRequest|Ip and port of worker, percentage of wanted samples|master|worker|
 |SamplingResponse|Stream of sample keys|worker|master|
-|PartitioningRequest|No content|master|worker|
+|PartitioningRequest|Ip and port of worker, Table of IP and partition|master|worker|
 |PartitioningResponse|Boolean that indicates partitioning has been complete successfully|worker|master
-|InternalSortRequest|No content|master|worker|
+|InternalSortRequest|Ip and port of worker|master|worker|
 |InternalSortResponse|Boolean that indicates internal sorting of worker has been complete successfully|worker|master|
-|ShuffleRequest|Stream of data that should be exchanged, sending ip and port|worker|master|
-|ShuffleResponse|Stream of data that should be exchanged, sending ip and port|master|worker|
-|MergeRequest|No content|master|worker|
+|ShuffleRunRequest|Ip and port of worker|worker|master|
+|ShuffleRunResponse|Boolean that indicates shuffling has been complete successfully|master|worker|
+|ShuffleExchangeRequest|Ip and port of source and destination|worker|master|
+|ShuffleExchangeResponse|Ip and port of source and destination, Stream of data that should be exchanged|master|worker|
+|MergeRequest|Ip and port of worker|master|worker|
 |MergeResponse|Boolean that indicates merging has been complete successfully|worker|master|
+|VerificationRequest|Ip and port of worker|master|worker|
+|VerificationResponse|Boolean that indicates verification has been complete successfully|worker|master|
