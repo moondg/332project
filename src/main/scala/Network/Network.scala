@@ -27,15 +27,27 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
       .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
       .build()
       .start()
+    state = MASTER_GET_SAMPLE
   }
 
   def ongoingServer(): Unit = {
-    if (server != null) {}
+    while (server != null && state != MASTER_DONE) {
+      state match {
+        case MASTER_GET_SAMPLE => {
+          pivot_check()
+        }
+        case MASTER_MAKE_PARTITION => {
+          divide_part()
+        }
+        case MASTER_WAIT_SORT => {}
+      }
+    }
   }
 
   def stopServer(): Unit = {
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
+      state = MASTER_FINISH
     }
   }
 
@@ -46,8 +58,12 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
     val f = Future {}
 
     f.onComplete {
-      case Success(v) => {}
-      case Failure(e) => {}
+      case Success(v) => {
+        state = MASTER_MAKE_PARTITION
+      }
+      case Failure(e) => {
+        state = MASTER_FAIL_TO_GET_SAMPLE
+      }
     }
 
   }
@@ -74,6 +90,7 @@ class NetworkClient {
   def connect_to_server(): Unit = {
     val respond = ???
     client_id = ???
+    state = WORKER_SEND_SAMPLE
   }
 
   def send_msg(msg: Message): Unit = {}
@@ -81,4 +98,10 @@ class NetworkClient {
   def shutdown(): Unit = {
     state = WORKER_DONE
   }
+
+  def send_sample(): Unit = {}
+
+  def send_unmatched_data(): Unit = {}
+
+  def wait_until_all_data_received(): Unit = {}
 }

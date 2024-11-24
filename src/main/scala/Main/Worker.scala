@@ -8,7 +8,9 @@ object Worker {
 
     try {
       network.connect_to_server()
-
+      network.send_sample()
+      network.send_unmatched_data()
+      network.wait_until_all_data_received()
     } catch {
       case except: Exception => println(except)
     } finally {

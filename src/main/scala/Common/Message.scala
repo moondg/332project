@@ -22,9 +22,17 @@ class WorkerStatus(_ip: String, _port: Int) {
   var state: WorkerState = WORKER_INITIAL
 }
 
-class Message(messageType: MessageType, what_msg: String, destIp: String, destPort: Int) {
-  val messasgeType: MessageType = messageType
-  val msg: String = what_msg
-  val ip: String = destIp
-  val port: Int = destPort
+class Message(
+    msgType: MessageType,
+    msg: String,
+    destIp: String,
+    destPort: Int,
+    srcIp: String,
+    srcPort: Int) {
+  val messasgeType: MessageType = msgType
+  val message: String = msg
+  val destinationIp: String = destIp
+  val destinationPort: Int = destPort
+  val sourceIp: String = srcIp
+  val sourcePort: Int = srcPort
 }
