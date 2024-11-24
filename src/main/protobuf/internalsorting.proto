@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package message;
+
+service InternalSortService {
+    rpc PerformInternalSort (InternalSortRequest) returns (InternalSortResponse);
+}
+
+// Master -> Worker 
+message InternalSortRequest {
+    string masterIp = 1;
+    int32 masterPort = 2;
+
+    string workerIp = 3;
+    int32 workerPort = 4;
+}
+
+// Worker -> Master
+message InternalSortResponse {
+    bool isInternalSortSuccessful = 1;
+}
