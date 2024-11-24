@@ -1,5 +1,6 @@
-import Key._
-import Record._
+import Core._
+
+import Core.Record._
 
 import org.scalacheck._
 import Prop.forAll
@@ -39,22 +40,15 @@ object RecordSpecification extends Properties("Record") {
   property("Record ordering") = Prop.all(recordTestCase.sorted == recordTestCase)
 }
 
-object PartitionTest extends Properties("Partition") {
+object BlockTest extends Properties("Block") {
   val data = Stream(
     "!@#$%^&*()000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
     "QWERTYUIOP000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
     "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003",
     "BMMMMMMMMM000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004",
     "CMMMMMMMMM000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005")
-  val partitionTestCase = new Partition(data.map { convertFromString(_) })
+  val blockTestCase = new Block(data.map { convertFromString(_) })
   val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP")
-  property("Partition internal sampling") =
-    Prop.all(partitionTestCase.sampling(2).map { convertFromRecord(_).key } == samplingAnswer)
-
-  val start = new Key("BMMMMMMMMM")
-  val end = new Key("QWERTYUIOP")
-  val shufflingAnswer = Stream("QWERTYUIOP", "BMMMMMMMMM", "CMMMMMMMMM")
-  property("Partition internal shuffling") = {
-    Prop.all(partitionTestCase.shuffling(start, end).partition.map { _.key } == shufflingAnswer)
-  }
+  property("Block internal sampling") =
+    Prop.all(blockTestCase.sampling(2).map { _.key } == samplingAnswer)
 }

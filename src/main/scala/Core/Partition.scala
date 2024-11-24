@@ -1,11 +1,10 @@
+package Core
+
+import Key._
 import Record._
+import Network.Network.IPAddr
+import Network.Network.Port
 
-class Partition(val partition: Stream[Record]) {
-  def sampling(size: Int): Stream[Record] = {
-    partition take size
-  }
-
-  def shuffling(start: Key, end: Key): Partition = {
-    new Partition(partition.filter(record => start.key <= record.key && record.key <= end.key))
-  }
+class Partition(val partition: Stream[Record], val worker: (IPAddr, Port)) {
+  def shuffling = ???
 }

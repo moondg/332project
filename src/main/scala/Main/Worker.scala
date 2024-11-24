@@ -1,6 +1,7 @@
 import Network.NetworkClient
-import Record._
-import Key._
+
+import Core.Block
+import Core.Key._
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -19,17 +20,15 @@ object Worker {
 
   }
 
-  private lazy val partition: Partition = ??? // TODO
+  private lazy val block: Block = ??? // TODO
 
   // TODO get SamplingRequest
   def sampling(size: Int): Stream[Key] = {
-    partition.sampling(size).map(convertFromRecord(_))
+    block.sampling(size).map(_.key)
   }
   // TODO send SampleResponse
 
   // TODO get ShuffleRequest
-  def shuffling(start: Key, end: Key): Partition = {
-    partition.shuffling(start, end)
-  }
+  // def shuffling(start: Key, end: Key): Partition = {}
   // TODO send ShuffleResponse
 }
