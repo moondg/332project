@@ -43,9 +43,18 @@ object PartitionTest extends Properties("Partition") {
   val data = Stream(
     "!@#$%^&*()000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
     "QWERTYUIOP000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
-    "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003")
+    "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003",
+    "BMMMMMMMMM000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004",
+    "CMMMMMMMMM000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005")
   val partitionTestCase = new Partition(data.map { convertFromString(_) })
   val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP")
-  property("Partition sampling") =
+  property("Partition internal sampling") =
     Prop.all(partitionTestCase.sampling(2).map { convertFromRecord(_).key } == samplingAnswer)
+
+  val start = new Key("BMMMMMMMMM")
+  val end = new Key("QWERTYUIOP")
+  val shufflingAnswer = Stream("QWERTYUIOP", "BMMMMMMMMM", "CMMMMMMMMM")
+  property("Partition internal shuffling") = {
+    Prop.all(partitionTestCase.shuffling(start, end).partition.map { _.key } == shufflingAnswer)
+  }
 }
