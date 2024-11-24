@@ -1,11 +1,5 @@
 # Class Design
 
-## Class: Key extend Ordered[Key]
-### member
-+ key: String
-### method
-+ override compare(a: Key, b: Key): Int
-
 ## Class: Record extend Ordered[Record]
 ### member
 + key: Key
