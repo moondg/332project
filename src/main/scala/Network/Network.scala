@@ -19,9 +19,9 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
   var state: MasterState = MASTER_INITIAL
-  val clients = List[WorkerStatus]
+  val clients: List[WorkerStatus] = ???
 
-  def start_server(): Unit = {
+  def startServer(): Unit = {
     server = ServerBuilder
       .forPort(port)
       .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
@@ -29,11 +29,11 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
       .start()
   }
 
-  def ongoing_server(): Unit = {
+  def ongoingServer(): Unit = {
     if (server != null) {}
   }
 
-  def stop_server(): Unit = {
+  def stopServer(): Unit = {
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
     }
@@ -52,9 +52,7 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   }
 
-  def divide_part(): Unit = {
-
-  }
+  def divide_part(): Unit = {}
 
 }
 
