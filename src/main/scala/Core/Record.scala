@@ -1,5 +1,9 @@
+package Core
+
+import Key._
+
 object Record {
-  def getKey(s: String): String = {
+  def getKey(s: String): Key = {
     require(s.length == 100, "String length must be 100")
     s take 10
   }
@@ -13,6 +17,6 @@ object Record {
   }
 }
 
-class Record(val key: String, val value: String) extends Ordered[Record] {
+class Record(val key: Key, val value: String) extends Ordered[Record] {
   override def compare(that: Record): Int = this.key `compare` that.key
 }

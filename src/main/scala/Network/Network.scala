@@ -15,6 +15,11 @@ import io.grpc.stub.StreamObserver;
 
 import message.gRPCtest.{ConnectionGrpc, TestRequest, TestResponse}
 
+object Network {
+  type IPAddr = String
+  type Port = Int
+}
+
 class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
