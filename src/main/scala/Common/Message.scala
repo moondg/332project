@@ -1,10 +1,9 @@
 package Common
 
 sealed trait MessageType
-case object SyncronizationRequest extends MessageType
-case object SyncronizationResponse extends MessageType
-case object ParseRequest extends MessageType
-case object ParseResponse extends MessageType
+
+case object EstablishmentRequest extends MessageType
+case object EstablishmentResponse extends MessageType
 case object SamplingRequest extends MessageType
 case object SamplingResponse extends MessageType
 case object PartitioningRequest extends MessageType
@@ -16,16 +15,16 @@ case object ShuffleResponse extends MessageType
 case object MergeRequest extends MessageType
 case object MergeResponse extends MessageType
 
-class WorkerStatus(ip_args: String, port_args: Int) {
-  val ip: String = ip_args
-  val port: Int = port_args
+class WorkerStatus(_ip: String, _port: Int) {
+  val ip: String = _ip
+  val port: Int = _port
   var keyRange: (String, String) = null
   var state: WorkerState = WORKER_INITIAL
 }
 
-class Message(which_type_of_msg: MessageType, what_msg: String, to_whom_ip: String, to_whom_port: Int) {
-  val msgType: MessageType = which_type_of_msg
+class Message(messageType: MessageType, what_msg: String, destIp: String, destPort: Int) {
+  val messasgeType: MessageType = messageType
   val msg: String = what_msg
-  val ip: String = to_whom_ip
-  val port: Int = to_whom_port
+  val ip: String = destIp
+  val port: Int = destPort
 }
