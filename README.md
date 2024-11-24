@@ -93,19 +93,21 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Implemented server starting
 - Chose log4j to take log from runtime
 
+### Week6
+- Renewal overall design see [here](/docs/program%20flow.md)
+- Design abstact structure of Shuffle
+- Design protobuf (now implement orderly with sorting implementation steps)
+- Implement logging code
+
 #### Goal of the next week
 [@문동균](https://github.com/moondg)
-- Design abstact structure of Shuffle
 - Implement sampling
 
 [@배재륜](https://github.com/bjr7000)
-- Implement logging code
 - Design FSM to track-control master's sorting state
 
 [@이윤혁](https://github.com/a-nodi)
-- Design protobuf (now implement orderly with sorting implementation steps)
 - Design FSM to track-control multiple worker's state from master
-- Make detail of TCP-like network interaction
 
 ## Workflow
 Workflow based on TDD (Test Driven Development)
