@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package message;
+
+// data chunk
+message DataChunk {
+    bytes data = 1;
+    int32 chunkIndex = 2;
+    bool isEOF = 3;
+}
+
+// Pair of key range 
+message KeyRange {
+    string lowerbound = 1;
+    string upperbound = 2;
+}
+
+// Row of key range air
+message KeyRangeTableRow {
+    string ip = 1;
+    string port = 2;
+    KeyRange range = 3;
+}
+
+message KeyRangeTable {
+    repeated KeyRangeTableRow rows = 1;
+}
