@@ -4,8 +4,10 @@ import Core.Record._
 
 import org.scalacheck._
 import Prop.forAll
+import scala.io.Source
+import java.io.PrintWriter
 
-object KeyValueSpecification extends Properties("Key") {
+object ParsingTest extends Properties("Parsing") {
   val keyParsingTestCase = Seq(
     (
       "@(4i_3nc#M000000981234098333939393339392390233290232390232390233290223902344303434894334893455855853",
@@ -29,7 +31,7 @@ object KeyValueSpecification extends Properties("Key") {
   }: _*)
 }
 
-object RecordSpecification extends Properties("Record") {
+object RecordTest extends Properties("Record") {
   val recordTestCase = Seq(
     new Record(
       "+#P3n-]RE{",
@@ -51,4 +53,28 @@ object BlockTest extends Properties("Block") {
   val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP")
   property("Block internal sampling") =
     Prop.all(blockTestCase.sampling(2).map { _.key } == samplingAnswer)
+}
+
+object IOTest extends Properties("IO") {
+  val inputDir = "src/test/resources/input/"
+  val outputDir = "src/test/resources/output/"
+  val fileNames = Array("block1", "block2", "block3")
+  def writeFile(name: String): Unit = {
+    val source = Source.fromFile(inputDir ++ name)
+    val block = source.getLines()
+    val sortedBlock = block.toArray.sorted
+    val writer = new PrintWriter(outputDir ++ name)
+    sortedBlock.foreach(writer.println)
+    writer.close()
+  }
+  property("Basic file read and write test") = {
+    fileNames.map(writeFile(_))
+    Prop.all(fileNames.map { s =>
+      Prop {
+        val sorted = Source.fromFile(inputDir ++ s).getLines().toArray.sorted
+        val answer = Source.fromFile(outputDir ++ s).getLines().toArray
+        sorted.zip(answer).map(p => p._1 == p._2).foldLeft(true)(_ && _)
+      }
+    }: _*)
+  }
 }
