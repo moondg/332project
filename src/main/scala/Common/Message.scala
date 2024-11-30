@@ -19,7 +19,7 @@ class WorkerStatus(_ip: String, _port: Int) {
   val ip: String = _ip
   val port: Int = _port
   var keyRange: (String, String) = null
-  var state: WorkerState = WORKER_INITIAL
+  var state: WorkerState = WorkerInitial
 }
 
 class Message(
