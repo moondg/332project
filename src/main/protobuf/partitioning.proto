@@ -5,11 +5,10 @@ package message;
 import "common.proto";
 
 service PartitionService {
-
     rpc PerformPartition (PartitionRequest) returns (PartitionResponse);
 }
 
-// Master -> Worker 
+// Master -> Worker
 message PartitionRequest {
     string workerIp = 3;
     int32 workerPort = 4;
