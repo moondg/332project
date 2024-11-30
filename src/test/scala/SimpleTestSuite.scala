@@ -43,16 +43,15 @@ object RecordTest extends Properties("Record") {
 }
 
 object BlockTest extends Properties("Block") {
-  val data = Stream(
+  val data = List(
     "!@#$%^&*()000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
     "QWERTYUIOP000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
     "Z<X>OJWDKm000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003",
     "BMMMMMMMMM000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004",
     "CMMMMMMMMM000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005")
   val blockTestCase = new Block(data.map { convertFromString(_) })
-  val samplingAnswer = Stream("!@#$%^&*()", "QWERTYUIOP")
-  property("Block internal sampling") =
-    Prop.all(blockTestCase.sampling(2).map { _.key } == samplingAnswer)
+  val samplingAnswer = List("!@#$%^&*()", "QWERTYUIOP")
+  property("Block internal sampling") = Prop.all(blockTestCase.sampling(2) == samplingAnswer)
 }
 
 object IOTest extends Properties("IO") {
