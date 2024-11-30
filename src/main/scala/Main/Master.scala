@@ -3,7 +3,13 @@ import scala.concurrent.ExecutionContext
 
 object Master {
   def main(args: Array[String]): Unit = {
-    val network = new NetworkServer(port = 50051, executionContext = ExecutionContext.global)
+    val argsFormat = "master [number of workers] [master network port (not essential)]"
+
+    require(args.length == 1 || args.length == 2, argsFormat)
+    val numberOfWorkers = args(0).toInt
+    val port = if (args.length == 1) 50051 else args(1).toInt
+
+    val network = new NetworkServer(port, numberOfWorkers, executionContext = ExecutionContext.global)
 
     try {
       network.startServer()

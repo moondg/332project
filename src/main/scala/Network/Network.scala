@@ -20,7 +20,7 @@ object Network {
   type Port = Int
 }
 
-class NetworkServer(port: Int, executionContext: ExecutionContext) {
+class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
   var state: MasterState = MASTER_INITIAL
