@@ -86,7 +86,7 @@ class ServerImpl extends ConnectionGrpc.Connection {
   }
 }
 
-class NetworkClient {
+class NetworkClient(masterIP: String, masterPort: Int) {
 
   var client_id: Int = -1
   var state: WorkerState = WORKER_INITIAL
