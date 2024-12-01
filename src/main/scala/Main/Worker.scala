@@ -32,7 +32,7 @@ object Worker {
 
     lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
 
-    val network = new NetworkClient(masterIP, masterPort)
+    val network = new NetworkClient(masterIP, masterPort, inputDirs, outputDir)
 
     try {
       network.connect_to_server()

@@ -93,13 +93,11 @@ class ServerImpl extends ConnectionGrpc.Connection {
   }
 }
 
-class NetworkClient(masterIP: String, masterPort: Int) {
+class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[String], val outputDir: String) {
   val ip: IPAddr = ???
-  lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
-  val outputDir: String = ???
-  val inputDirs: List[String] = ???
-  val master: Node = ???
   val port: Port = ???
+  lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
+  val master: Node = (masterIP, masterPort)
 
   var state: WorkerState = WorkerInitial
   var server: Server = null
