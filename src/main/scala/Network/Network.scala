@@ -9,6 +9,8 @@ import scala.annotation.tailrec
 
 import java.util.concurrent.TimeUnit
 
+import java.net.InetAddress
+
 import Common._
 import Core._
 import Core.Table._
@@ -29,7 +31,8 @@ object Network {
 }
 import Network._
 
-class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) extends Logging {
+class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext)
+    extends Logging {
 
   var server: Server = null
   var state: MasterState = MasterInitial
@@ -89,9 +92,11 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
       assert(clientList != Nil)
       logger.info(s"Worker IP - ${clientList.head.ip}")
-      if(clientList.tail != Nil) clientIPLogging(clientList.tail)
+      if (clientList.tail != Nil) clientIPLogging(clientList.tail)
     }
-    logger.info(s"Master IP:Port - ${}:${port.toString}")
+    val ip = InetAddress.getLocalHost.getAddress
+    logger.info(
+      s"Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
     clientIPLogging(clients.toList)
   }
 
@@ -106,9 +111,12 @@ class ServerImpl extends ConnectionGrpc.Connection {
   }
 }
 
-class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[String], val outputDir: String) {
-  val ip: IPAddr = ???
-  val port: Port = ???
+class NetworkClient(
+    masterIP: String,
+    masterPort: Int,
+    val ip: IPAddr,
+    val inputDirs: List[String],
+    val outputDir: String) {
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
   val master: Node = (masterIP, masterPort)
 
