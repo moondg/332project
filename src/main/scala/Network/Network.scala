@@ -23,39 +23,40 @@ object Network {
 class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
-  var state: MasterState = MASTER_INITIAL
+  var state: MasterState = MasterInitial
   val clients: List[WorkerStatus] = ???
 
+  
   def startServer(): Unit = {
     server = ServerBuilder
       .forPort(port)
       .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
       .build()
       .start()
-    state = MASTER_GET_SAMPLE
+    
   }
-
+  
   def ongoingServer(): Unit = {
-    while (server != null && state != MASTER_DONE) {
+    while (server != null && state != MasterFinished) {
       state match {
-        case MASTER_GET_SAMPLE => {
+        case MasterReceivedSampleResponse => {
           pivot_check()
         }
-        case MASTER_MAKE_PARTITION => {
+        case MasterMakingPartition => {
           divide_part()
         }
-        case MASTER_WAIT_SORT => {}
+        case MasterPendingMergeResponse => {}
       }
     }
   }
-
+  
   def stopServer(): Unit = {
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
-      state = MASTER_FINISH
+      state = MasterFinished
     }
   }
-
+  
   def send_msg(msg: Message): Unit = {}
 
   def pivot_check(): Unit = {
@@ -64,14 +65,15 @@ class NetworkServer(port: Int, executionContext: ExecutionContext) {
 
     f.onComplete {
       case Success(v) => {
-        state = MASTER_MAKE_PARTITION
+        state = MasterReceivedSampleResponse
       }
       case Failure(e) => {
-        state = MASTER_FAIL_TO_GET_SAMPLE
+        state = MasterReceivedSampleResponseFailure
       }
     }
 
   }
+  
 
   def divide_part(): Unit = {}
 
@@ -89,19 +91,19 @@ class ServerImpl extends ConnectionGrpc.Connection {
 class NetworkClient {
 
   var client_id: Int = -1
-  var state: WorkerState = WORKER_INITIAL
+  var state: WorkerState = WorkerInitial
   var server: Server = null
 
   def connect_to_server(): Unit = {
     val respond = ???
     client_id = ???
-    state = WORKER_SEND_SAMPLE
+    state = WorkerSendedSample
   }
 
   def send_msg(msg: Message): Unit = {}
 
   def shutdown(): Unit = {
-    state = WORKER_DONE
+    state = WorkerDone
   }
 
   def send_sample(): Unit = {}
