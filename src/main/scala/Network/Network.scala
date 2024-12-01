@@ -97,13 +97,13 @@ class NetworkClient {
   def connect_to_server(): Unit = {
     val respond = ???
     client_id = ???
-    state = WorkerSendedSample
+    state = WorkerSentSampleResponse
   }
 
   def send_msg(msg: Message): Unit = {}
 
   def shutdown(): Unit = {
-    state = WorkerDone
+    state = WorkerFinished
   }
 
   def send_sample(): Unit = {}
