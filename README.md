@@ -20,26 +20,26 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - 2. `Programming & Minor debuging phase` (~ Week 6)
 - 3. `System test, obtaining all components` (~ Week 8)
 
-### Milestone #1
-- Establish connection between master and worker
+### ~~Milestone #1~~
+- ~~Establish connection between master and worker~~
 - ~~Design distributed sorting algorithm for this project~~
 - ~~Generate sample input data for testing key-value parsing~~
 
 ### Milestone #2
-- Complete key-value parsing
+- ~~Complete key-value parsing~~
 - Send and receive sample datas between master and worker
 
-### Milestone #3
-- Implement sampling
-- Implement partitioning
+~~### Milestone #3~~
+- ~~Implement sampling~~
+- ~~Implement partitioning~~
 
 ### Milestone #4
-- Implement parsing
+- ~~Implement parsing~~
 - Implement shuffling
 
 ### Milestone #5
 - Implement sorting
-- Implement mergeing
+- Implement merging
 
 ### Milestone #6
 - Test integrated milestone #3 with sample data to see it works well
@@ -99,15 +99,11 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - Design protobuf (now implement orderly with sorting implementation steps)
 - Implement logging code
 
-#### Goal of the next week
-[@문동균](https://github.com/moondg)
-- Implement sampling
-
-[@배재륜](https://github.com/bjr7000)
-- Design FSM to track-control master's sorting state
-
-[@이윤혁](https://github.com/a-nodi)
-- Design FSM to track-control multiple worker's state from master
+### Week7
+- Completed FSM design & implementation
+- Test logging & logging ip addresses
+- Implemented partitioning & dividing key range
+- Argument parsing
 
 ## Workflow
 Workflow based on TDD (Test Driven Development)
