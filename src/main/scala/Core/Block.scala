@@ -14,7 +14,4 @@ class Block(val block: List[Record]) {
   def sampling(size: Int): List[Key] = {
     (block take size).map(_.key)
   }
-  def partitioning(keyRange: KeyRange): List[Record] = {
-    block.takeWhile(record => keyRange.contains(record.key))
-  }
 }
