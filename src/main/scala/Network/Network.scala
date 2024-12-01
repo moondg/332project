@@ -112,13 +112,12 @@ class ServerImpl extends ConnectionGrpc.Connection {
 }
 
 class NetworkClient(
-    masterIP: String,
-    masterPort: Int,
+    val master: Node,
     val ip: IPAddr,
     val inputDirs: List[String],
-    val outputDir: String) {
+    val outputDir: String)
+    extends Logging {
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
-  val master: Node = (masterIP, masterPort)
 
   var state: WorkerState = WorkerInitial
   var server: Server = null
@@ -159,7 +158,9 @@ class NetworkClient(
         case head :: next => {
           val (keyRange, node) = head
           val (sending, remaining) = records span (keyRange.contains(_))
+          logger.info("[Worker] Partition ${ip} -> ${node.ip} Start")
           sendRecords(sending, node)
+          logger.info("[Worker] Partition ${ip} -> ${node.ip} Done")
           sendPartition(remaining, next)
         }
       }
