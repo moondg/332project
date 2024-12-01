@@ -27,7 +27,7 @@ object Network {
 }
 import Network._
 
-class NetworkServer(port: Int, executionContext: ExecutionContext) {
+class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) {
 
   var server: Server = null
   var state: MasterState = MasterInitial
@@ -93,13 +93,13 @@ class ServerImpl extends ConnectionGrpc.Connection {
   }
 }
 
-class NetworkClient {
+class NetworkClient(masterIP: String, masterPort: Int) {
   val ip: IPAddr = ???
-  val port: Port = ???
-  val master: Node = ???
-  val inputDirs: List[String] = ???
-  val outputDir: String = ???
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
+  val outputDir: String = ???
+  val inputDirs: List[String] = ???
+  val master: Node = ???
+  val port: Port = ???
 
   var state: WorkerState = WorkerInitial
   var server: Server = null
