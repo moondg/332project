@@ -17,7 +17,7 @@ object Worker {
 
     try {
       network.connect_to_server()
-      network.send_sample()
+      // network.sendRecords()
       network.send_unmatched_data()
       network.wait_until_all_data_received()
     } catch {
@@ -27,29 +27,4 @@ object Worker {
     }
 
   }
-
-  private val ip: IPAddr = ???
-  private val port: Port = ???
-  private val inputDirs: List[String] = ???
-  private val outputDir: String = ???
-  private lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
-
-  // TODO get SamplingRequest
-  def sampling(size: Int): Unit = {
-    implicit val ec: ExecutionContext = ExecutionContext.global
-
-    val f = Future { blocks map (_.sampling(size)) }
-
-    f.onComplete({
-      case Success(value) => value
-      case Failure(exception) => exception
-    })
-
-    // TODO send to Master
-  }
-  // TODO send SampleResponse
-
-  // TODO get ShuffleRequest
-  // def shuffling(start: Key, end: Key): Partition = {}
-  // TODO send ShuffleResponse
 }
