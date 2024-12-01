@@ -68,7 +68,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
           pivot_check()
         }
         case MasterMakingPartition => {
-          divide_part()
+          divideKeyRange()
         }
         case MasterPendingMergeResponse => {}
       }
@@ -103,8 +103,6 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   }
 
-  def divide_part(): Unit = {}
-
   def ipLogging(): Unit = {
     @tailrec
     def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
@@ -118,6 +116,28 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     clientIPLogging(clientList.toList)
   }
 
+  def divideKeyRange(): Unit = {
+    @tailrec
+    def divideKeyRangeRec(data: List[String], leftWorker: Int, checkedData: Int, perWorker: Int, keyHead: String): Unit = {
+      assert(leftWorker > 0 && data.nonEmpty)
+      if(leftWorker == 1) {
+        clients(clients.length - 1).keyRange = (data.head, data.last)
+      }
+      else {
+        if(checkedData == 0) {
+          divideKeyRangeRec(data.tail, leftWorker, 1, perWorker, data.head)
+        }
+        else if(checkedData == perWorker) {
+          clients(clients.length - leftWorker).keyRange = (keyHead, data.head)
+          divideKeyRangeRec(data.tail, leftWorker-1, 0, perWorker, "")
+        }
+        else {
+          divideKeyRangeRec(data.tail, leftWorker, checkedData + 1, perWorker, keyHead)
+        }
+      }
+    }
+    divideKeyRangeRec(samples.sorted.toList, numberOfWorkers, numberOfWorkers/samples.length, numberOfWorkers/samples.length, "")
+  }
 }
 
 class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService {
