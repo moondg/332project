@@ -29,7 +29,7 @@ Refering on the _The Mythical Man-Month_, the development period was divided int
 - ~~Complete key-value parsing~~
 - Send and receive sample datas between master and worker
 
-~~### Milestone #3~~
+### ~~Milestone #3~~
 - ~~Implement sampling~~
 - ~~Implement partitioning~~
 
