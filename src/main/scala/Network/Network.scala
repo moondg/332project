@@ -18,6 +18,8 @@ import Core.Block._
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver;
 
+import org.apache.logging.log4j.scala.Logging
+
 import message.gRPCtest.{ConnectionGrpc, TestRequest, TestResponse}
 
 object Network {
@@ -27,11 +29,11 @@ object Network {
 }
 import Network._
 
-class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) {
+class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) extends Logging {
 
   var server: Server = null
   var state: MasterState = MasterInitial
-  val clients: List[WorkerStatus] = ???
+  var clients: Array[WorkerStatus] = Array.empty[WorkerStatus]
 
   def startServer(): Unit = {
     server = ServerBuilder
@@ -81,6 +83,17 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 
   def divide_part(): Unit = {}
+
+  def ipLogging(): Unit = {
+    @tailrec
+    def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
+      assert(clientList != Nil)
+      logger.info(s"Worker IP - ${clientList.head.ip}")
+      if(clientList.tail != Nil) clientIPLogging(clientList.tail)
+    }
+    logger.info(s"Master IP:Port - ${}:${port.toString}")
+    clientIPLogging(clients.toList)
+  }
 
 }
 
