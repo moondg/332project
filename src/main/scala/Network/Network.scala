@@ -31,7 +31,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   var server: Server = null
   var state: MasterState = MasterInitial
-  val clients: List[WorkerStatus] = ???
+  var samples: Array[String] = Array.empty[String]
+  var clients: Array[WorkerStatus] = Array.empty[WorkerStatus]
 
   def startServer(): Unit = {
     server = ServerBuilder
@@ -49,7 +50,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
           pivot_check()
         }
         case MasterMakingPartition => {
-          divide_part()
+          divideKeyRange()
         }
         case MasterPendingMergeResponse => {}
       }
@@ -80,8 +81,28 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   }
 
-  def divide_part(): Unit = {}
-
+  def divideKeyRange(): Unit = {
+    @tailrec
+    def divideKeyRangeRec(data: List[String], leftWorker: Int, checkedData: Int, perWorker: Int, keyHead: String): Unit = {
+      assert(leftWorker > 0 && data.nonEmpty)
+      if(leftWorker == 1) {
+        clients(clients.length - 1).keyRange = (data.head, data.last)
+      }
+      else {
+        if(checkedData == 0) {
+          divideKeyRangeRec(data.tail, leftWorker, 1, perWorker, data.head)
+        }
+        else if(checkedData == perWorker) {
+          clients(clients.length - leftWorker).keyRange = (keyHead, data.head)
+          divideKeyRangeRec(data.tail, leftWorker-1, 0, perWorker, "")
+        }
+        else {
+          divideKeyRangeRec(data.tail, leftWorker, checkedData + 1, perWorker, keyHead)
+        }
+      }
+    }
+    divideKeyRangeRec(samples.sorted.toList, numberOfWorkers, numberOfWorkers/samples.length, numberOfWorkers/samples.length, "")
+  }
 }
 
 class ServerImpl extends ConnectionGrpc.Connection {
