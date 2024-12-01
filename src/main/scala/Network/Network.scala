@@ -25,7 +25,9 @@ object Network {
   type Port = Int
   type Node = (IPAddr, Port)
 }
+
 import Network._
+import java.net.InetAddress
 
 class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) {
 
@@ -63,7 +65,10 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
   }
 
-  def send_msg(msg: Message): Unit = {}
+  def sendMsg(msg: Message): Unit = {
+    val msgType = msg.messasgeType
+    // msgType match {}
+  }
 
   def pivot_check(): Unit = {
 
@@ -91,19 +96,36 @@ class ServerImpl extends ConnectionGrpc.Connection {
     val response = message.gRPCtest.TestResponse(reply = "Your response message")
     Future.successful(response)
   }
+
+  override def establishConnection(
+      request: message.gRPCtest.ConnectionRequest): Future[message.gRPCtest.ConnectionResponse] = {
+    // Implement your logic here
+    val response = message.gRPCtest.ConnectionResponse(reply = "Your response message")
+    Future.successful(response)
+  }
 }
 
 class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[String], val outputDir: String) {
   val ip: IPAddr = ???
-  val port: Port = ???
+
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
   val master: Node = (masterIP, masterPort)
 
   var state: WorkerState = WorkerInitial
   var server: Server = null
 
-  def connect_to_server(): Unit = {
-    val respond = ???
+  val channel = ManagedChannelBuilder
+    .forAddress(masterIP, masterPort) // Connect to master
+    .usePlaintext() // No encryption
+    .build() // Build the channel
+
+  // Create a stubs
+  val blockingStub = ConnectionGrpc.blockingStub(channel)
+  val nonBlockingStub = ConnectionGrpc.stub(channel)
+
+  def connectToServer(): Unit = {
+    val request = new EstablishRequest(ip, port)
+    val response =  
     state = WorkerSentSampleResponse
   }
 
@@ -148,4 +170,20 @@ class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[Strin
   def send_unmatched_data(): Unit = {}
 
   def wait_until_all_data_received(): Unit = {}
+}
+
+class ClientImpl extends ConnectionGrpc.Connection {
+  override def testMethod(
+      request: message.gRPCtest.TestRequest): Future[message.gRPCtest.TestResponse] = {
+    // Implement your logic here
+    val response = message.gRPCtest.TestResponse(reply = "Your response message")
+    Future.successful(response)
+  }
+
+  override def establishConnection(
+      request: message.gRPCtest.ConnectionRequest): Future[message.gRPCtest.ConnectionResponse] = {
+    // Implement your logic here
+    val response = message.gRPCtest.ConnectionResponse(reply = "Your response message")
+    Future.successful(response)
+  }
 }
