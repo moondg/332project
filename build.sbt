@@ -159,9 +159,8 @@ libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.17.0" % "test"
 // documentation at http://www.scala-sbt.org/documentation.html
 
 libraryDependencies ++= Seq(
-  "org.apache.logging.log4j" % "log4j-api" % "2.20.0",
-  "org.apache.logging.log4j" % "log4j-core" % "2.20.0"
-)
+  "org.apache.logging.log4j" %% "log4j-api-scala" % "13.1.0",
+  "org.apache.logging.log4j" % "log4j-core" % "2.19.0")
 
 libraryDependencies ++= Seq(
   "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,

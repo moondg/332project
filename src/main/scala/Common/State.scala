@@ -48,20 +48,54 @@ sealed trait WorkerState
 
 // States of Connection Establishment
 case object WorkerInitial extends WorkerState
-case object WorkerEstablished extends WorkerState
+case object WorkerConnectionEstablished extends WorkerState
 
 // States of Sampling
 case object WorkerPendingSampleRequest extends WorkerState
+case object WorkerReceivedSampleRequest extends WorkerState
 case object WorkerSampling extends WorkerState
-case object WorkerSendingSample extends WorkerState
-case object WorkerSendedSample extends WorkerState
+case object WorkerSendingSampleResponse extends WorkerState
+case object WorkerSendingSampleResponseFailure extends WorkerState
+case object WorkerSentSampleResponse extends WorkerState
 
 // States of Partitioning
-case object WorkerCheckPartition extends WorkerState
-case object WorkerSendingUnmatchedData extends WorkerState
+case object WorkerPendingPartitionRequest extends WorkerState
+case object WorkerReceivedPartitionRequest extends WorkerState
+case object WorkerPartitioningData extends WorkerState
+case object WorkerSendingPartitionResponse extends WorkerState
+case object WorkerSendingPartitionResponseFailure extends WorkerState
+case object WorkerSentPartitionResponse extends WorkerState
+
+// States of Shuffling
+case object WorkerPendingShuffleRequest extends WorkerState
+case object WorkerReceivedShuffleRequest extends WorkerState
 case object WorkerWaitingAllDataReceived extends WorkerState
-case object WorkerDone extends WorkerState
+case object WorkerReceivedAllData extends WorkerState
+case object WorkerSendingShuffleResponse extends WorkerState
+case object WorkerSendingShuffleResponseFailure extends WorkerState
+case object WorkerSentShuffleResponse extends WorkerState
+
+// States of Merging
+case object WorkerPendingMergeRequest extends WorkerState
+case object WorkerReceivedMergeRequest extends WorkerState
+case object WorkerMergingData extends WorkerState
+case object WorkerMergingComplete extends WorkerState
+case object WorkerSendingMergeResponse extends WorkerState
+case object WorkerSendingMergeResponseFailure extends WorkerState
+case object WorkerSentMergeResponse extends WorkerState
+
+// States of Verification
+case object WorkerPendingVerificationRequest extends WorkerState
+case object WorkerReceivedVerificationRequest extends WorkerState
+case object WorkerVerifyingData extends WorkerState
+case object WorkerVerificationComplete extends WorkerState
+case object WorkerSendingVerificationResponse extends WorkerState
+case object WorkerSendingVerificationResponseFailure extends WorkerState
+case object WorkerSentVerificationResponse extends WorkerState
+
+// States of Common
 case object WorkerError extends WorkerState
+case object WorkerFinished extends WorkerState
 
 // Events of Master
 sealed trait MasterEvent
@@ -100,9 +134,60 @@ case object MasterEventReceiveVerificationResponse extends MasterEvent
 case object MasterEventReceiveVerificationResponseFailure extends MasterEvent
 case object MasterEventVerificationInterWorkerFailure extends MasterEvent
 
-
 // Events of Common
 case object MasterEventFinishSorting extends MasterEvent
+
+// Events of Worker
+sealed trait WorkerEvent
+
+// Events of Connection Establishment
+case object WorkerEventConnectionEstablished extends WorkerEvent
+case object WorkerEventReceiveSampleRequest extends WorkerEvent
+
+// Events of Sampling
+case object WorkerEventProceedSampling extends WorkerEvent
+case object WorkerEventSendSampleResponse extends WorkerEvent
+case object WorkerEventSendSampleResponseFailure extends WorkerEvent
+case object WorkerEventSendSampleResponseComplete extends WorkerEvent
+
+// Events of Partitioning
+case object WorkerEventProceedPartitioning extends WorkerEvent
+case object WorkerEventReceivePartitionRequest extends WorkerEvent
+case object WorkerEventPartitionData extends WorkerEvent
+case object WorkerEventSendPartitionResponse extends WorkerEvent
+case object WorkerEventSendPartitionResponseFailure extends WorkerEvent
+case object WorkerEventSendPartitionResponseComplete extends WorkerEvent
+
+// Events of Shuffling
+case object WorkerEventProceedShuffling extends WorkerEvent
+case object WorkerEventReceiveShuffleRequest extends WorkerEvent
+case object WorkerEventEstablishedInterworkerConnection extends WorkerEvent
+case object WorkerEventReceivedAllData extends WorkerEvent
+case object WorkerEventSendShuffleResponse extends WorkerEvent
+case object WorkerEventSendShuffleResponseFailure extends WorkerEvent
+case object WorkerEventSendShuffleResponseComplete extends WorkerEvent
+
+// Events of Merging
+case object WorkerEventProceedMerging extends WorkerEvent
+case object WorkerEventReceiveMergeRequest extends WorkerEvent
+case object WorkerEventMergeData extends WorkerEvent
+case object WorkerEventCompleteMerging extends WorkerEvent
+case object WorkerEventSendMergeResponse extends WorkerEvent
+case object WorkerEventSendMergeResponseFailure extends WorkerEvent
+case object WorkerEventSendMergeResponseComplete extends WorkerEvent
+
+// Events of Verification
+case object WorkerEventProceedVerification extends WorkerEvent
+case object WorkerEventReceiveVerificationRequest extends WorkerEvent
+case object WorkerEventVerifyData extends WorkerEvent
+case object WorkerEventCompleteVerification extends WorkerEvent
+case object WorkerEventVerificationFailure extends WorkerEvent
+case object WorkerEventSendVerificationResponse extends WorkerEvent
+case object WorkerEventSendVerificationResponseFailure extends WorkerEvent
+case object WorkerEventSendVerificationResponseComplete extends WorkerEvent
+
+// Events of Common
+case object WorkerEventFinishSorting extends WorkerEvent
 
 // Finite State Machine for Master that tracks the state of the each Master-Worker connection
 case class MasterFSM(state: MasterState, isVerificationNeeded: Boolean = false) {
@@ -289,6 +374,251 @@ case class MasterFSM(state: MasterState, isVerificationNeeded: Boolean = false) 
       case MasterFinished => MasterFSM(MasterFinished, isVerificationNeeded)
 
       case _ => MasterFSM(MasterError, isVerificationNeeded)
+    }
+  }
+}
+
+case class WorkerFSM(state: WorkerState, isVerificationNeeded: Boolean = false) {
+  def getState(): WorkerState = state
+
+  def transition(event: WorkerEvent): WorkerFSM = {
+    state match {
+      // Connection Establishment
+      case WorkerInitial =>
+        event match {
+          case WorkerEventConnectionEstablished =>
+            WorkerFSM(WorkerConnectionEstablished, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerConnectionEstablished =>
+        event match {
+          case WorkerEventProceedSampling =>
+            WorkerFSM(WorkerPendingSampleRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+        
+      // Sampling
+      case WorkerPendingSampleRequest =>
+        event match {
+          case WorkerEventReceiveSampleRequest =>
+            WorkerFSM(WorkerReceivedSampleRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerReceivedSampleRequest =>
+        event match {
+          case WorkerEventSendSampleResponse =>
+            WorkerFSM(WorkerSendingSampleResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingSampleResponse =>
+        event match {
+          case WorkerEventSendSampleResponseComplete =>
+            WorkerFSM(WorkerSentSampleResponse, isVerificationNeeded)
+          case WorkerEventSendSampleResponseFailure =>
+            WorkerFSM(WorkerSendingSampleResponseFailure, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingSampleResponseFailure =>
+        event match {
+          case WorkerEventSendSampleResponse =>
+            WorkerFSM(WorkerSendingSampleResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSentSampleResponse =>
+        event match {
+          case WorkerEventProceedPartitioning =>
+            WorkerFSM(WorkerPendingPartitionRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+
+      // Partitioning
+      case WorkerPendingPartitionRequest =>
+        event match {
+          case WorkerEventReceivePartitionRequest =>
+            WorkerFSM(WorkerReceivedPartitionRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerReceivedPartitionRequest =>
+        event match {
+          case WorkerEventPartitionData =>
+            WorkerFSM(WorkerPartitioningData, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerPartitioningData =>
+        event match {
+          case WorkerEventSendPartitionResponse =>
+            WorkerFSM(WorkerSendingPartitionResponse, isVerificationNeeded) 
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingPartitionResponse =>
+        event match {
+          case WorkerEventSendPartitionResponseComplete =>
+            WorkerFSM(WorkerSentPartitionResponse, isVerificationNeeded)
+          case WorkerEventSendPartitionResponseFailure =>
+            WorkerFSM(WorkerSendingPartitionResponseFailure, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        } 
+      case WorkerSendingPartitionResponseFailure =>
+        event match {
+          case WorkerEventSendPartitionResponse =>
+            WorkerFSM(WorkerSendingPartitionResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSentPartitionResponse =>
+        event match {
+          case WorkerEventProceedShuffling =>
+            WorkerFSM(WorkerPendingShuffleRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+
+      // Shuffling
+      case WorkerPendingShuffleRequest =>
+        event match {
+          case WorkerEventReceiveShuffleRequest =>
+            WorkerFSM(WorkerReceivedShuffleRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerReceivedShuffleRequest =>
+        event match {
+          case WorkerEventEstablishedInterworkerConnection =>
+            WorkerFSM(WorkerWaitingAllDataReceived, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerWaitingAllDataReceived =>
+        event match {
+          case WorkerEventReceivedAllData =>
+            WorkerFSM(WorkerReceivedAllData, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerReceivedAllData =>
+        event match {
+          case WorkerEventSendShuffleResponse =>
+            WorkerFSM(WorkerSendingShuffleResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingShuffleResponse =>
+        event match {
+          case WorkerEventSendShuffleResponseComplete =>
+            WorkerFSM(WorkerSentShuffleResponse, isVerificationNeeded)
+          case WorkerEventSendShuffleResponseFailure =>
+            WorkerFSM(WorkerSendingShuffleResponseFailure, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingShuffleResponseFailure =>
+        event match {
+          case WorkerEventSendShuffleResponse =>
+            WorkerFSM(WorkerSendingShuffleResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSentShuffleResponse =>
+        event match {
+          case WorkerEventProceedMerging =>
+            WorkerFSM(WorkerPendingMergeRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      
+      // Merging
+      case WorkerPendingMergeRequest =>
+        event match {
+          case WorkerEventReceiveMergeRequest =>
+            WorkerFSM(WorkerReceivedMergeRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerReceivedMergeRequest =>
+        event match {
+          case WorkerEventMergeData =>
+            WorkerFSM(WorkerMergingData, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerMergingData =>
+        event match {
+          case WorkerEventCompleteMerging =>
+            WorkerFSM(WorkerMergingComplete, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerMergingComplete =>
+        event match {
+          case WorkerEventSendMergeResponse =>
+            WorkerFSM(WorkerSendingMergeResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingMergeResponse =>
+        event match {
+          case WorkerEventSendMergeResponseComplete =>
+            WorkerFSM(WorkerSentMergeResponse, isVerificationNeeded)
+          case WorkerEventSendMergeResponseFailure =>
+            WorkerFSM(WorkerSendingMergeResponseFailure, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingMergeResponseFailure =>
+        event match {
+          case WorkerEventSendMergeResponse =>
+            WorkerFSM(WorkerSendingMergeResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSentMergeResponse =>
+        event match {
+          case WorkerEventProceedVerification =>
+            isVerificationNeeded match {
+              case true => WorkerFSM(WorkerPendingVerificationRequest, isVerificationNeeded)
+              case false => WorkerFSM(WorkerError, isVerificationNeeded)
+            }
+          case WorkerEventFinishSorting =>
+            WorkerFSM(WorkerFinished, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      
+      // Verification
+      case WorkerPendingVerificationRequest =>
+        event match {
+          case WorkerEventReceiveVerificationRequest =>
+            WorkerFSM(WorkerReceivedVerificationRequest, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerReceivedVerificationRequest =>
+        event match {
+          case WorkerEventVerifyData =>
+            WorkerFSM(WorkerVerifyingData, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerVerifyingData =>
+        event match {
+          case WorkerEventCompleteVerification =>
+            WorkerFSM(WorkerVerificationComplete, isVerificationNeeded)
+          case WorkerEventVerificationFailure =>
+            WorkerFSM(WorkerError, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerVerificationComplete =>
+        event match {
+          case WorkerEventSendVerificationResponse =>
+            WorkerFSM(WorkerSendingVerificationResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingVerificationResponse =>
+        event match {
+          case WorkerEventSendVerificationResponseComplete =>
+            WorkerFSM(WorkerSentVerificationResponse, isVerificationNeeded)
+          case WorkerEventSendVerificationResponseFailure =>
+            WorkerFSM(WorkerSendingVerificationResponseFailure, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSendingVerificationResponseFailure =>
+        event match {
+          case WorkerEventSendVerificationResponse =>
+            WorkerFSM(WorkerSendingVerificationResponse, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      case WorkerSentVerificationResponse =>
+        event match {
+          case WorkerEventFinishSorting =>
+            WorkerFSM(WorkerFinished, isVerificationNeeded)
+          case _ => WorkerFSM(WorkerError, isVerificationNeeded)
+        }
+      
+      case WorkerFinished => WorkerFSM(WorkerFinished, isVerificationNeeded)
+      
+      case _ => WorkerFSM(WorkerError, isVerificationNeeded)
     }
   }
 }
