@@ -104,15 +104,13 @@ class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[Strin
 
   def connect_to_server(): Unit = {
     val respond = ???
-    client_id = ???
     state = WorkerSentSampleResponse
-    state = WorkerSendedSample
   }
 
   def send_msg(msg: Message): Unit = {}
 
   def shutdown(): Unit = {
-    state = WorkerDone
+    state = WorkerFinished
   }
 
   def sendSamples(sample: List[Key], node: Node): Unit = {}
