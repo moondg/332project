@@ -4,10 +4,6 @@ package message;
 
 import "common.proto";
 
-service SamplingService {
-    rpc PerformSampling (SampleRequest) returns (stream SampleResponse);
-}
-
 // Master -> Worker 
 message SampleRequest {
     string workerIp = 1;
@@ -18,8 +14,8 @@ message SampleRequest {
 
 // Worker -> Master
 message SampleResponse {
-    bool isSampliingSuccessful = 1;
+    bool isSamplingSuccessful = 1;
 
-    // Data chunk of keys
-    DataChunk sample = 3;
+    // Data chunks of key
+    repeated DataChunk samples = 3;
 }

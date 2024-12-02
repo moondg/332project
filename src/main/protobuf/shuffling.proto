@@ -4,12 +4,6 @@ package message;
 
 import "common.proto";
 
-service ShuffleService {
-    rpc RunShuffle (ShuffleRunRequest) returns (ShuffleRunResponse);
-
-    rpc ExchangeData (ShuffleExchangeRequest) returns (stream ShuffleExchangeResponse);
-}
-
 // Master -> Worker
 message ShuffleRunRequest {
     string workerIp = 1;
@@ -38,5 +32,5 @@ message ShuffleExchangeResponse {
     string destinationIp = 3;
     int32 destinationPort = 4;
 
-    DataChunk data = 5;
+    repeated DataChunk data = 5;
 }

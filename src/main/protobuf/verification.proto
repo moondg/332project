@@ -4,10 +4,6 @@ package message;
 
 import "common.proto";
 
-service VerificationService {
-    rpc VerifyKeyRange (VerificationRequest) returns (VerificationResponse);
-}
-
 // Master -> Worker
 message VerificationRequest {
     string workerIp = 1;
