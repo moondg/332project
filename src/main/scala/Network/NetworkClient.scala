@@ -146,8 +146,6 @@ class ClientImpl extends WorkerServiceGrpc.WorkerService {
 
     // TODO: Sample Data here
 
-    val repeatedSampleDataChunks = Seq(???) // TODO: Sample Datas and send it to master
-
     (1 to 10000).foreach { i =>
       val response = SampleResponse(
         isSamplingSuccessful = true, 
