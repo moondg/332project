@@ -1,5 +1,8 @@
 package Network
 
+import Network._
+
+// Import necessary scala libraries
 import scala.concurrent.{ExecutionContext, Future, Promise, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -7,21 +10,23 @@ import scala.collection.mutable.{Map, ListBuffer}
 import scala.util.{Success, Failure}
 import scala.annotation.tailrec
 
+// Import necessary java libraries
+import java.net.InetAddress
 import java.util.concurrent.TimeUnit
 
-import java.net.InetAddress
+// Import logging libraries
+import org.apache.logging.log4j.scala.Logging
 
+// Import necessary project libraries
 import Common._
 import Core._
 import Core.Table._
 import Core.Key._
 import Core.Block._
 
+// Import gRPC libraries
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver
-
-import org.apache.logging.log4j.scala.Logging
-
 
 // Import protobuf messages and services
 import message.establishment.{EstablishRequest, EstablishResponse}
@@ -33,15 +38,13 @@ import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
 
-
+// Define the Network object
 object Network {
   type IPAddr = String
   type Port = Int
   type Node = (IPAddr, Port)
 }
 
-import Network._
-import java.net.InetAddress
 
 class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext)
     extends Logging {
@@ -157,7 +160,6 @@ class NetworkClient(
 
   val stubToMaster = MasterServiceGrpc.stub(channelToMaster)
 
-
   def startServer(): Unit = {
     clientService = new ClientImpl()
     server = ServerBuilder
@@ -168,11 +170,15 @@ class NetworkClient(
   }  
 
   def connectToServer(): Unit = {
-    println("Try connecting to master")
+    logger.info("Trying to establish connection to master")
+    
+    // Create a request to establish connection
     val request = new EstablishRequest(
       workerIp=ip, 
       workerPort=port
       )
+
+    // Send the request to master
     val response: Future[EstablishResponse] = stubToMaster.establishConnection(request)
 
     try {
@@ -188,10 +194,6 @@ class NetworkClient(
     catch{
       case e: Exception => println(e)
     }
-
-
-
-    
   }
 
   def send_msg(msg: Message): Unit = {}
@@ -239,7 +241,7 @@ class NetworkClient(
 
 class ClientImpl extends WorkerServiceGrpc.WorkerService {
   
-  override def performSampling(
+  override def sampleData(
       request: SampleRequest): Future[SampleResponse] = {
     val repeatedSampleDataChunks = Seq(???) // TODO: Sample Datas and send it to master
     
@@ -250,7 +252,7 @@ class ClientImpl extends WorkerServiceGrpc.WorkerService {
     Future.successful(response)
   }
 
-  override def performPartitioning(
+  override def partitionData(
       request: PartitionRequest): Future[PartitionResponse] = {
     val keyRangeTable = request.table
 
@@ -262,7 +264,7 @@ class ClientImpl extends WorkerServiceGrpc.WorkerService {
     Future.successful(response)
   }
 
-  override def runShuffling(
+  override def runShuffle(
       request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
     
     val response = ShuffleRunResponse(
@@ -288,7 +290,7 @@ class ClientImpl extends WorkerServiceGrpc.WorkerService {
     Future.successful(response)
   }
 
-  override def mergingData(
+  override def mergeData(
       request: MergeRequest): Future[MergeResponse] = {
     val response = MergeResponse(
       isMergeSuccessful=true
