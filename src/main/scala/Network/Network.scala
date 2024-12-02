@@ -82,7 +82,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 
   def sendMsg(msg: Message): Unit = {
-    val msgType = msg.messasgeType
+    val msgType = msg.msgType
     // msgType match {}
   }
 
@@ -148,7 +148,7 @@ class NetworkClient(
   var server: Server = null
 
   val channelToMaster = ManagedChannelBuilder
-    .forAddress(masterIP, masterPort)
+    .forAddress(master._1, master._2)
     .usePlaintext()
     .build()
 
