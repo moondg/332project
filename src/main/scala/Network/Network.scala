@@ -45,13 +45,13 @@ object Network {
   type Node = (IPAddr, Port)
 }
 
-
 class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext)
     extends Logging {
 
   var server: Server = null
   var state: MasterState = MasterInitial
   var clientList: ListBuffer[WorkerStatus] = ListBuffer.empty
+  var sample: Array[String] = Array.empty[String]
 
   def startServer(): Unit = {
     server = ServerBuilder
@@ -81,7 +81,6 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       state = MasterFinished
     }
   }
-
 
   def sendMsg(msg: Message): Unit = {
     val msgType = msg.messasgeType
@@ -117,43 +116,37 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 
   def divideKeyRange(): Unit = {
+    val sampleCountPerWorker: Int = sample.length / numberOfWorkers
     @tailrec
-    def divideKeyRangeRec(data: List[String], leftWorker: Int, checkedData: Int, perWorker: Int, keyHead: String): Unit = {
-      assert(leftWorker > 0 && data.nonEmpty)
-      if(leftWorker == 1) {
-        clients(clients.length - 1).keyRange = (data.head, data.last)
-      }
-      else {
-        if(checkedData == 0) {
-          divideKeyRangeRec(data.tail, leftWorker, 1, perWorker, data.head)
-        }
-        else if(checkedData == perWorker) {
-          clients(clients.length - leftWorker).keyRange = (keyHead, data.head)
-          divideKeyRangeRec(data.tail, leftWorker-1, 0, perWorker, "")
-        }
-        else {
-          divideKeyRangeRec(data.tail, leftWorker, checkedData + 1, perWorker, keyHead)
-        }
+    def divideKeyRangeRecur(
+        data: List[String],
+        dataCount: Int,
+        whoseRange: Int,
+        rangeHead: String): Unit = {
+      if (whoseRange == numberOfWorkers - 1) {
+        clientList(numberOfWorkers - 1).keyRange = (rangeHead, "MAXIMUM")
+      } else if (dataCount == 1) {
+        clientList(whoseRange).keyRange = (rangeHead, data.head)
+        divideKeyRangeRecur(data.tail, sampleCountPerWorker, whoseRange + 1, data.head + 1)
+      } else {
+        divideKeyRangeRecur(data.tail, dataCount - 1, whoseRange, rangeHead)
       }
     }
-    divideKeyRangeRec(samples.sorted.toList, numberOfWorkers, numberOfWorkers/samples.length, numberOfWorkers/samples.length, "")
+    divideKeyRangeRecur(sample.sorted.toList, sampleCountPerWorker, 0, "MINIMUM")
   }
 }
 
 class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService {
-  
-  override def establishConnection(
-      request: EstablishRequest): Future[EstablishResponse] = {
-    
+
+  override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
+
     val workerStatus = new WorkerStatus(request.workerIp, request.workerPort)
-    
+
     clientList.synchronized {
       clientList += workerStatus
     }
 
-    val response = EstablishResponse(
-      isEstablishmentSuccessful=true
-    )
+    val response = EstablishResponse(isEstablishmentSuccessful = true)
     Future.successful(response)
   }
 }
@@ -172,7 +165,7 @@ class NetworkClient(
   var state: WorkerState = WorkerInitial
   var clientService: ClientImpl = null
   var server: Server = null
-  
+
   val channelToMaster = ManagedChannelBuilder
     .forAddress(masterIP, masterPort)
     .usePlaintext()
@@ -187,16 +180,13 @@ class NetworkClient(
       .addService(WorkerServiceGrpc.bindService(clientService, executionContext))
       .build()
       .start()
-  }  
+  }
 
   def connectToServer(): Unit = {
     logger.info("[Worker] Trying to establish connection to master")
-    
+
     // Create a request to establish connection
-    val request = new EstablishRequest(
-      workerIp=ip, 
-      workerPort=port
-      )
+    val request = new EstablishRequest(workerIp = ip, workerPort = port)
 
     // Send the request to master
     val response: Future[EstablishResponse] = stubToMaster.establishConnection(request)
@@ -206,13 +196,11 @@ class NetworkClient(
       val result = Await.result(response, 1.hour)
       if (result.isEstablishmentSuccessful) {
         println("[Worker] Connection established")
-      }
-      else {
+      } else {
         println("[Worker] Connection failed")
       }
-    
-    } 
-    catch{
+
+    } catch {
       case e: Exception => println(e)
     }
   }
@@ -221,6 +209,15 @@ class NetworkClient(
 
   def shutdown(): Unit = {
     state = WorkerFinished
+  }
+
+  def checkRange(data: String, range: (String, String)): Boolean = {
+    (range._1 == "MINIMUM", range._2 == "MAXIMUM") match {
+      case (true, true) => true
+      case (true, false) => data <= range._2
+      case (false, true) => range._1 <= data
+      case (false, false) => range._1 <= data && data <= range._2
+    }
   }
 
   def sendSamples(sample: List[Key], node: Node): Unit = {}
@@ -261,69 +258,49 @@ class NetworkClient(
 }
 
 class ClientImpl extends WorkerServiceGrpc.WorkerService {
-  
-  override def sampleData(
-      request: SampleRequest): Future[SampleResponse] = {
+
+  override def sampleData(request: SampleRequest): Future[SampleResponse] = {
     val repeatedSampleDataChunks = Seq(???) // TODO: Sample Datas and send it to master
-    
-    val response = SampleResponse(
-      isSamplingSuccessful=true,
-      samples=repeatedSampleDataChunks
-    )
+
+    val response = SampleResponse(isSamplingSuccessful = true, samples = repeatedSampleDataChunks)
     Future.successful(response)
   }
 
-  override def partitionData(
-      request: PartitionRequest): Future[PartitionResponse] = {
+  override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
     val keyRangeTable = request.table
 
-      
     // TODO: Perform Partitioning here
-    val response = PartitionResponse(
-      isPartitioningSuccessful=true
-    )
+    val response = PartitionResponse(isPartitioningSuccessful = true)
     Future.successful(response)
   }
 
-  override def runShuffle(
-      request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
-    
-    val response = ShuffleRunResponse(
-      isShufflingSuccessful=true
-    )
+  override def runShuffle(request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
+
+    val response = ShuffleRunResponse(isShufflingSuccessful = true)
     Future.successful(response)
   }
 
-  override def exchangeData(
-      request: ShuffleExchangeRequest): Future[ShuffleExchangeResponse] = {
-    
+  override def exchangeData(request: ShuffleExchangeRequest): Future[ShuffleExchangeResponse] = {
+
     // Pack values and send data
     val data = Seq(???)
-    
+
     val response = ShuffleExchangeResponse(
-      sourceIp="",
-      sourcePort=0,
-      destinationIp="",
-      destinationPort=0,
-
-      data=data
-    )
+      sourceIp = "",
+      sourcePort = 0,
+      destinationIp = "",
+      destinationPort = 0,
+      data = data)
     Future.successful(response)
   }
 
-  override def mergeData(
-      request: MergeRequest): Future[MergeResponse] = {
-    val response = MergeResponse(
-      isMergeSuccessful=true
-    )
+  override def mergeData(request: MergeRequest): Future[MergeResponse] = {
+    val response = MergeResponse(isMergeSuccessful = true)
     Future.successful(response)
   }
 
-  override def verifyKeyRange(
-      request: VerificationRequest): Future[VerificationResponse] = {
-    val response = VerificationResponse(
-      isVerificationSuccessful=true
-    )
+  override def verifyKeyRange(request: VerificationRequest): Future[VerificationResponse] = {
+    val response = VerificationResponse(isVerificationSuccessful = true)
     Future.successful(response)
   }
 }
