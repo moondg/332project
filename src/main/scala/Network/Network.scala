@@ -170,7 +170,7 @@ class NetworkClient(
   }  
 
   def connectToServer(): Unit = {
-    logger.info("Trying to establish connection to master")
+    logger.info("[Worker] Trying to establish connection to master")
     
     // Create a request to establish connection
     val request = new EstablishRequest(
@@ -182,12 +182,13 @@ class NetworkClient(
     val response: Future[EstablishResponse] = stubToMaster.establishConnection(request)
 
     try {
+      // Wait for the response
       val result = Await.result(response, 1.hour)
       if (result.isEstablishmentSuccessful) {
-        println("Connection established")
+        println("[Worker] Connection established")
       }
       else {
-        println("Connection failed")
+        println("[Worker] Connection failed")
       }
     
     } 
