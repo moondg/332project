@@ -27,6 +27,8 @@ import Core.Block._
 // Import gRPC libraries
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver
+import com.google.protobuf.ByteString
+
 
 // Import protobuf messages and services
 import message.establishment.{EstablishRequest, EstablishResponse}
@@ -37,6 +39,7 @@ import message.merging.{MergeRequest, MergeResponse}
 import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
+import javax.xml.crypto.Data
 
 class NetworkClient(
     val master: Node,
@@ -59,7 +62,7 @@ class NetworkClient(
 
   val stubToMaster = MasterServiceGrpc.stub(channelToMaster)
 
-  def startServer(): Unit = {
+  def start(): Unit = {
     clientService = new ClientImpl()
     server = ServerBuilder
       .forPort(port)
@@ -69,7 +72,7 @@ class NetworkClient(
   }
 
   def connectToServer(): Unit = {
-    logger.info("[Worker] Trying to establish connection to master")
+    println("[Worker] Trying to establish connection to master")
 
     // Create a request to establish connection
     val request = new EstablishRequest(workerIp = ip, workerPort = port)
@@ -90,8 +93,6 @@ class NetworkClient(
       case e: Exception => println(e)
     }
   }
-
-  def send_msg(msg: Message): Unit = {}
 
   def shutdown(): Unit = {}
 
@@ -136,11 +137,32 @@ class NetworkClient(
 
 class ClientImpl extends WorkerServiceGrpc.WorkerService {
 
-  override def sampleData(request: SampleRequest): Future[SampleResponse] = {
+  override def sampleData(
+    request: SampleRequest,
+    responseObserver: StreamObserver[SampleResponse]
+  ): Unit = {
+    
+    val percentageOfSampling = request.percentageOfSampling
+
+    // TODO: Sample Data here
+
     val repeatedSampleDataChunks = Seq(???) // TODO: Sample Datas and send it to master
 
-    val response = SampleResponse(isSamplingSuccessful = true, samples = repeatedSampleDataChunks)
-    Future.successful(response)
+    (1 to 10000).foreach { i =>
+      val response = SampleResponse(
+        isSamplingSuccessful = true, 
+        // Option[message.common.DataChunk]
+        sample=Some(
+            DataChunk(
+                data = ByteString.copyFrom(java.nio.ByteBuffer.allocate(4).putInt(i).array()),
+                chunkIndex = i,
+                isEOF = (i == 10000)
+            )
+        )
+      )
+      responseObserver.onNext(response)
+    }
+    responseObserver.onCompleted()
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {

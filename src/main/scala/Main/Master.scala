@@ -22,8 +22,10 @@ object Master {
       
       println("Waiting for workers to connect")
       // Block until networkServer.clientList's length is equal to numberOfWorkers
-      while (networkServer.clientList.length < numberOfWorkers) { Thread.sleep(1000) }
+      while (networkServer.clients.length < numberOfWorkers) { Thread.sleep(1000) }
 
+      println("All workers connected")
+      networkServer.requestSampling()
 
     } catch {
       case except: Exception => println(except)

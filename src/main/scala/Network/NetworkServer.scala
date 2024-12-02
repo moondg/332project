@@ -25,7 +25,7 @@ import Core.Key._
 import Core.Block._
 
 // Import gRPC libraries
-import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
+import io.grpc.{Server, ManagedChannel, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver
 
 // Import protobuf messages and services
@@ -50,13 +50,16 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   var server: Server = null
   var state: MasterState = MasterInitial
-  var clientList: ListBuffer[WorkerStatus] = ListBuffer.empty
-  var sample: Array[String] = Array.empty[String]
+  var clients: ListBuffer[WorkerStatus] = ListBuffer.empty
+  var sample: Array[Byte] = Array.emptyByteArray
+
+  var channels: Seq[ManagedChannel] = null
+  var stubs: Seq[WorkerServiceGrpc.WorkerServiceStub] = null
 
   def start(): Unit = {
     server = ServerBuilder
       .forPort(port)
-      .addService(MasterServiceGrpc.bindService(new ServerImpl(clientList), executionContext))
+      .addService(MasterServiceGrpc.bindService(new ServerImpl(clients), executionContext))
       .build()
       .start()
   }
@@ -65,6 +68,80 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
       state = MasterFinished
+    }
+  }
+
+  def createChannels(): Unit = {
+    channels = clients.map { client =>
+      ManagedChannelBuilder
+        .forAddress(client.ip, client.port)
+        .usePlaintext()
+        .build()
+    }.toSeq
+    stubs = channels.map { channel =>
+      WorkerServiceGrpc.stub(channel)
+    }
+  }
+
+  def requestSampling(): Unit = {
+        
+    // Perform this to each worker
+    val responses: Seq[Future[List[Byte]]] = clients.zip(stubs).toSeq.map {
+        case (client, stub) => {
+            val request = SampleRequest(
+                workerIp=client.ip, 
+                workerPort=client.port,
+                percentageOfSampling=1
+            )
+            
+            val promise = Promise[List[Byte]]()
+            val buffer = ListBuffer.empty[Byte]
+            var haveReachedEOF = false
+
+            // Define the response observer to handle the response from the worker
+            val responseObserver = new StreamObserver[SampleResponse] {
+                override def onNext(value: SampleResponse): Unit = {
+                   value.sample match {
+                    case Some(datachunk) =>
+                        haveReachedEOF = datachunk.isEOF
+                        buffer ++= datachunk.data.toByteArray
+                    case None =>
+                        onError(new Exception("Received empty data chunk"))
+                    }
+                }
+
+                override def onError(t: Throwable): Unit = {
+                    promise.failure(t)
+                }
+
+                override def onCompleted(): Unit = {
+                    if (haveReachedEOF) {
+                        promise.success(buffer.toList)
+                    } else {
+                        promise.failure(new Exception("Did not receive EOF"))
+                    }
+                }
+                
+                // Concurrently run the sampleData request
+                def receivedResponse: Future[List[Byte]] = promise.future
+            }
+            
+            // Request sample data for current worker 
+            stub.sampleData(request, responseObserver)
+            responseObserver.receivedResponse
+        }
+    }
+
+
+    Future.sequence(responses).map { allResponses =>
+      sample = allResponses.flatten.toArray
+    }.onComplete {
+        case Success(_) => {
+            println("Sample data received successfully")
+        }
+        case Failure(e) => {
+            println("Sample data received failure")
+        }
     }
   }
 
@@ -85,18 +162,18 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   /*
   def ipLogging(): Unit = {
     @tailrec
-    def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
-      assert(clientList != Nil)
-      logger.info(s"[Master] Worker IP - ${clientList.head.ip}")
-      if (clientList.tail != Nil) clientIPLogging(clientList.tail)
+    def clientIPLogging(clients: List[WorkerStatus]): Unit = {
+      assert(clients != Nil)
+      logger.info(s"[Master] Worker IP - ${clients.head.ip}")
+      if (clients.tail != Nil) clientIPLogging(clients.tail)
     }
     val ip = InetAddress.getLocalHost.getAddress
     logger.info(
       s"[Master] Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
-    clientIPLogging(clientList.toList)
+    clientIPLogging(clients.toList)
   }
   */
-  
+  /*
   def divideKeyRange(): Unit = {
     val sampleCountPerWorker: Int = sample.length / numberOfWorkers
     @tailrec
@@ -107,9 +184,9 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
         rangeHead: Key): Unit = {
       if (whoseRange == numberOfWorkers - 1) {
         // (head, MAXIMUM)
-        clientList(numberOfWorkers - 1).keyRange = (rangeHead, 0xff.toChar.toString * 10)
+        clients(numberOfWorkers - 1).keyRange = (rangeHead, 0xff.toChar.toString * 10)
       } else if (dataCount == 1) {
-        clientList(whoseRange).keyRange = (rangeHead, data.head)
+        clients(whoseRange).keyRange = (rangeHead, data.head)
         divideKeyRangeRecur(data.tail, sampleCountPerWorker, whoseRange + 1, data.head + 1)
       } else {
         divideKeyRangeRecur(data.tail, dataCount - 1, whoseRange, rangeHead)
@@ -118,17 +195,19 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     // rangeHead = MINIMUM
     divideKeyRangeRecur(sample.sorted.toList, sampleCountPerWorker, 0, 0x00.toChar.toString * 10)
   }
+  */
 }
 
-class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService with Logging{
+class ServerImpl(clients: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService with Logging {
 
   override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
 
     val workerStatus = new WorkerStatus(request.workerIp, request.workerPort)
 
-    logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
-    clientList.synchronized {
-      clientList += workerStatus
+    // logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
+    println(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
+    clients.synchronized {
+      clients += workerStatus
     }
 
     val response = EstablishResponse(isEstablishmentSuccessful = true)
