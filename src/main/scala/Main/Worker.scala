@@ -14,12 +14,11 @@ import scala.util.{Failure, Success}
 import scala.io.Source
 import scala.concurrent.ExecutionContext
 
-
 object Worker {
   def main(args: Array[String]): Unit = {
     val argsFormat =
       "worker [master IP:port] -I [input directory] [input directory] … [input directory] -O [output directory]"
-          
+
     require(
       args.length >= 5 &&
         args(0).contains(":") &&
@@ -42,7 +41,13 @@ object Worker {
 
     lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
 
-    val network = new NetworkClient(masterIP, masterPort, ipString, port, inputDirs, outputDir, executionContext = ExecutionContext.global)
+    val network = new NetworkClient(
+      (masterIP, masterPort),
+      ipString,
+      port,
+      inputDirs,
+      outputDir,
+      executionContext = ExecutionContext.global)
 
     try {
       network.connectToServer()

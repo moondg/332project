@@ -45,7 +45,6 @@ object Network {
   type Node = (IPAddr, Port)
 }
 
-
 class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext)
     extends Logging {
 
@@ -82,9 +81,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
   }
 
-
   def sendMsg(msg: Message): Unit = {
-    val msgType = msg.messasgeType
+    val msgType = msg.msgType
     // msgType match {}
   }
 
@@ -121,40 +119,36 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 }
 
 class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService {
-  
-  override def establishConnection(
-      request: EstablishRequest): Future[EstablishResponse] = {
-    
+
+  override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
+
     val workerStatus = new WorkerStatus(request.workerIp, request.workerPort)
-    
+
     clientList.synchronized {
       clientList += workerStatus
     }
 
-    val response = EstablishResponse(
-      isEstablishmentSuccessful=true
-    )
+    val response = EstablishResponse(isEstablishmentSuccessful = true)
     Future.successful(response)
   }
 }
 
 class NetworkClient(
-    masterIP: String,
-    masterPort: Int,
+    val master: Node,
     val ip: IPAddr,
     val port: Port,
     val inputDirs: List[String],
     val outputDir: String,
-    val executionContext: ExecutionContext) {
+    val executionContext: ExecutionContext)
+    extends Logging {
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
-  val master: Node = (masterIP, masterPort)
 
   var state: WorkerState = WorkerInitial
   var clientService: ClientImpl = null
   var server: Server = null
-  
+
   val channelToMaster = ManagedChannelBuilder
-    .forAddress(masterIP, masterPort)
+    .forAddress(master._1, master._2)
     .usePlaintext()
     .build()
 
@@ -167,16 +161,13 @@ class NetworkClient(
       .addService(WorkerServiceGrpc.bindService(clientService, executionContext))
       .build()
       .start()
-  }  
+  }
 
   def connectToServer(): Unit = {
     logger.info("[Worker] Trying to establish connection to master")
-    
+
     // Create a request to establish connection
-    val request = new EstablishRequest(
-      workerIp=ip, 
-      workerPort=port
-      )
+    val request = new EstablishRequest(workerIp = ip, workerPort = port)
 
     // Send the request to master
     val response: Future[EstablishResponse] = stubToMaster.establishConnection(request)
@@ -186,13 +177,11 @@ class NetworkClient(
       val result = Await.result(response, 1.hour)
       if (result.isEstablishmentSuccessful) {
         println("[Worker] Connection established")
-      }
-      else {
+      } else {
         println("[Worker] Connection failed")
       }
-    
-    } 
-    catch{
+
+    } catch {
       case e: Exception => println(e)
     }
   }
@@ -228,7 +217,9 @@ class NetworkClient(
         case head :: next => {
           val (keyRange, node) = head
           val (sending, remaining) = records span (keyRange.contains(_))
+          logger.info("[Worker] Partition ${ip} -> ${node.ip} Start")
           sendRecords(sending, node)
+          logger.info("[Worker] Partition ${ip} -> ${node.ip} Done")
           sendPartition(remaining, next)
         }
       }
@@ -241,69 +232,49 @@ class NetworkClient(
 }
 
 class ClientImpl extends WorkerServiceGrpc.WorkerService {
-  
-  override def sampleData(
-      request: SampleRequest): Future[SampleResponse] = {
+
+  override def sampleData(request: SampleRequest): Future[SampleResponse] = {
     val repeatedSampleDataChunks = Seq(???) // TODO: Sample Datas and send it to master
-    
-    val response = SampleResponse(
-      isSamplingSuccessful=true,
-      samples=repeatedSampleDataChunks
-    )
+
+    val response = SampleResponse(isSamplingSuccessful = true, samples = repeatedSampleDataChunks)
     Future.successful(response)
   }
 
-  override def partitionData(
-      request: PartitionRequest): Future[PartitionResponse] = {
+  override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
     val keyRangeTable = request.table
 
-      
     // TODO: Perform Partitioning here
-    val response = PartitionResponse(
-      isPartitioningSuccessful=true
-    )
+    val response = PartitionResponse(isPartitioningSuccessful = true)
     Future.successful(response)
   }
 
-  override def runShuffle(
-      request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
-    
-    val response = ShuffleRunResponse(
-      isShufflingSuccessful=true
-    )
+  override def runShuffle(request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
+
+    val response = ShuffleRunResponse(isShufflingSuccessful = true)
     Future.successful(response)
   }
 
-  override def exchangeData(
-      request: ShuffleExchangeRequest): Future[ShuffleExchangeResponse] = {
-    
+  override def exchangeData(request: ShuffleExchangeRequest): Future[ShuffleExchangeResponse] = {
+
     // Pack values and send data
     val data = Seq(???)
-    
+
     val response = ShuffleExchangeResponse(
-      sourceIp="",
-      sourcePort=0,
-      destinationIp="",
-      destinationPort=0,
-
-      data=data
-    )
+      sourceIp = "",
+      sourcePort = 0,
+      destinationIp = "",
+      destinationPort = 0,
+      data = data)
     Future.successful(response)
   }
 
-  override def mergeData(
-      request: MergeRequest): Future[MergeResponse] = {
-    val response = MergeResponse(
-      isMergeSuccessful=true
-    )
+  override def mergeData(request: MergeRequest): Future[MergeResponse] = {
+    val response = MergeResponse(isMergeSuccessful = true)
     Future.successful(response)
   }
 
-  override def verifyKeyRange(
-      request: VerificationRequest): Future[VerificationResponse] = {
-    val response = VerificationResponse(
-      isVerificationSuccessful=true
-    )
+  override def verifyKeyRange(request: VerificationRequest): Future[VerificationResponse] = {
+    val response = VerificationResponse(isVerificationSuccessful = true)
     Future.successful(response)
   }
 }
