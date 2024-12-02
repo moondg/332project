@@ -35,7 +35,8 @@ object Worker {
       ip(0).toString + "." + ip(1).toString + "." + ip(2).toString + "." + ip(3).toString
     val serverSocket = new java.net.ServerSocket(0)
     val port: Port = serverSocket.getLocalPort
-
+    serverSocket.close()
+    
     val inputDirs: List[String] = inputDirParse(args.toList)
     val outputDir: String = args(args.length - 1)
 
