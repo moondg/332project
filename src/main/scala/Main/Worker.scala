@@ -49,9 +49,10 @@ object Worker {
       executionContext = ExecutionContext.global)
 
     try {
+      network.start()
       network.connectToServer()
       while (true) {
-        Thread.sleep(1000) // Check for shutdown or keep-alive logic
+        Thread.sleep(1000)
       }
       // network.sendRecords()
       network.send_unmatched_data()
