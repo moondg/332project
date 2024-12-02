@@ -105,6 +105,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
                     case Some(datachunk) =>
                         haveReachedEOF = datachunk.isEOF
                         buffer ++= datachunk.data.toByteArray
+                        println(s"data received: ${datachunk.data.toByteArray}")
                     case None =>
                         onError(new Exception("Received empty data chunk"))
                     }
