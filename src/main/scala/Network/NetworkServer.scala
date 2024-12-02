@@ -38,8 +38,6 @@ import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
 
-// import Network.Network._
-
 // Define the Network object
 object Network {
   type IPAddr = String
@@ -55,7 +53,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   var clientList: ListBuffer[WorkerStatus] = ListBuffer.empty
   var sample: Array[String] = Array.empty[String]
 
-  def startServer(): Unit = {
+  def start(): Unit = {
     server = ServerBuilder
       .forPort(port)
       .addService(MasterServiceGrpc.bindService(new ServerImpl(clientList), executionContext))
@@ -63,30 +61,11 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       .start()
   }
 
-  def ongoingServer(): Unit = {
-    while (server != null && state != MasterFinished) {
-      state match {
-        case MasterReceivedSampleResponse => {
-          pivot_check()
-        }
-        case MasterMakingPartition => {
-          divideKeyRange()
-        }
-        case MasterPendingMergeResponse => {}
-      }
-    }
-  }
-
-  def stopServer(): Unit = {
+  def stop(): Unit = {
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
       state = MasterFinished
     }
-  }
-
-  def sendMsg(msg: Message): Unit = {
-    val msgType = msg.msgType
-    // msgType match {}
   }
 
   def pivot_check(): Unit = {
@@ -103,20 +82,21 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
 
   }
-
+  /*
   def ipLogging(): Unit = {
     @tailrec
     def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
       assert(clientList != Nil)
-      logger.info(s"Worker IP - ${clientList.head.ip}")
+      logger.info(s"[Master] Worker IP - ${clientList.head.ip}")
       if (clientList.tail != Nil) clientIPLogging(clientList.tail)
     }
     val ip = InetAddress.getLocalHost.getAddress
     logger.info(
-      s"Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
+      s"[Master] Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
     clientIPLogging(clientList.toList)
   }
-
+  */
+  
   def divideKeyRange(): Unit = {
     val sampleCountPerWorker: Int = sample.length / numberOfWorkers
     @tailrec
@@ -140,12 +120,13 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 }
 
-class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService {
+class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService with Logging{
 
   override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
 
     val workerStatus = new WorkerStatus(request.workerIp, request.workerPort)
 
+    logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
     clientList.synchronized {
       clientList += workerStatus
     }
