@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package message;
+
+import "establishment.proto";
+import "sampling.proto";
+import "partitioning.proto";
+import "shuffling.proto";
+import "merging.proto";
+import "verification.proto";
+
+service MasterService {
+    rpc EstablishConnection (EstablishRequest) returns (EstablishResponse);
+}
+
+service WorkerService {
+    rpc SampleData (SampleRequest) returns (SampleResponse);
+    rpc PartitionData (PartitionRequest) returns (PartitionResponse);
+    rpc RunShuffle (ShuffleRunRequest) returns (ShuffleRunResponse);
+    rpc ExchangeData (ShuffleExchangeRequest) returns (ShuffleExchangeResponse);
+    rpc MergeData (MergeRequest) returns (MergeResponse);
+    rpc VerifyKeyRange (VerificationRequest) returns (VerificationResponse);
+}
