@@ -162,10 +162,10 @@ class NetworkClient(
       .build()
       .start()
   }
-
+  // TODO: Remove Println and replace it with logging
   def connectToServer(): Unit = {
-    logger.info("[Worker] Trying to establish connection to master")
-
+    println("[Worker] Trying to establish connection to master")
+    
     // Create a request to establish connection
     val request = new EstablishRequest(workerIp = ip, workerPort = port)
 
