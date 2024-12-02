@@ -133,15 +133,15 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
         }
     }
 
-
-    Future.sequence(responses).map { allResponses =>
-      sample = allResponses.flatten.toArray
-    }.onComplete {
-        case Success(_) => {
-            println("Sample data received successfully")
-        }
-        case Failure(e) => {
-            println("Sample data received failure")
+    try {
+        val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
+        sample = allResponses.flatten.toArray
+        println(s"Sample data received: ${sample.length} bytes")
+    }
+    catch {
+        case e: Exception => {
+            state = MasterReceivedSampleResponseFailure
+            println(s"Failed to receive sample data: ${e.getMessage}")
         }
     }
   }

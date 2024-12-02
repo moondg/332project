@@ -25,6 +25,7 @@ object Master {
       while (networkServer.clients.length < numberOfWorkers) { Thread.sleep(1000) }
 
       println("All workers connected")
+      networkServer.createChannels()
       networkServer.requestSampling()
 
     } catch {

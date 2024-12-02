@@ -50,7 +50,9 @@ object Worker {
 
     try {
       network.connectToServer()
-      Thread.sleep(3600000)
+      while (true) {
+        Thread.sleep(1000) // Check for shutdown or keep-alive logic
+      }
       // network.sendRecords()
       network.send_unmatched_data()
       network.wait_until_all_data_received()
