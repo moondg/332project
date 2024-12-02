@@ -5,10 +5,15 @@ object Key {
 
   class KeyRange(val start: Key, val end: Key) {
     def contains(key: Key): Boolean = {
-      start <= key && key <= end
+      (start == "MINIMUM", end == "MAXIMUM") match {
+        case (true, true) => true
+        case (true, false) => key <= end
+        case (false, true) => start <= key
+        case (false, false) => start <= key && key <= end
+      }
     }
     def contains(record: Record): Boolean = {
-      start <= record.key && record.key <= end
+      contains(record.key)
     }
   }
 }

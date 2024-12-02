@@ -119,10 +119,10 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     val sampleCountPerWorker: Int = sample.length / numberOfWorkers
     @tailrec
     def divideKeyRangeRecur(
-        data: List[String],
+        data: List[Key],
         dataCount: Int,
         whoseRange: Int,
-        rangeHead: String): Unit = {
+        rangeHead: Key): Unit = {
       if (whoseRange == numberOfWorkers - 1) {
         clientList(numberOfWorkers - 1).keyRange = (rangeHead, "MAXIMUM")
       } else if (dataCount == 1) {
@@ -209,15 +209,6 @@ class NetworkClient(
 
   def shutdown(): Unit = {
     state = WorkerFinished
-  }
-
-  def checkRange(data: String, range: (String, String)): Boolean = {
-    (range._1 == "MINIMUM", range._2 == "MAXIMUM") match {
-      case (true, true) => true
-      case (true, false) => data <= range._2
-      case (false, true) => range._1 <= data
-      case (false, false) => range._1 <= data && data <= range._2
-    }
   }
 
   def sendSamples(sample: List[Key], node: Node): Unit = {}
