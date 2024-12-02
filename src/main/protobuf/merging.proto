@@ -2,10 +2,6 @@ syntax = "proto3";
 
 package message;
 
-service MergeService {
-    rpc PerformInternalSort (MergeRequest) returns (MergeResponse);
-}
-
 // Master -> Worker
 message MergeRequest {
     string workerIp = 3;

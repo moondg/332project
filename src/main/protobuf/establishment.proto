@@ -2,14 +2,10 @@ syntax = "proto3";
 
 package message;
 
-service ConnectionService {
-    rpc EstablishConnection (EstablishRequest) returns (EstablishResponse);
-}
-
 // Worker -> Master
 message EstablishRequest {
-    string workerIp = 3;
-    int32 workerPort = 4;
+    string workerIp = 1;
+    int32 workerPort = 2;
 }
 
 // Master -> Worker

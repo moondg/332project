@@ -3,11 +3,13 @@ package Network
 import scala.concurrent.{ExecutionContext, Future, Promise, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.collection.mutable.Map
+import scala.collection.mutable.{Map, ListBuffer}
 import scala.util.{Success, Failure}
 import scala.annotation.tailrec
 
 import java.util.concurrent.TimeUnit
+
+import java.net.InetAddress
 
 import Common._
 import Core._
@@ -16,9 +18,21 @@ import Core.Key._
 import Core.Block._
 
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
-import io.grpc.stub.StreamObserver;
+import io.grpc.stub.StreamObserver
 
-import message.gRPCtest.{ConnectionGrpc, TestRequest, TestResponse}
+import org.apache.logging.log4j.scala.Logging
+
+
+// Import protobuf messages and services
+import message.establishment.{EstablishRequest, EstablishResponse}
+import message.sampling.{SampleRequest, SampleResponse}
+import message.partitioning.{PartitionRequest, PartitionResponse}
+import message.shuffling.{ShuffleRunRequest, ShuffleRunResponse, ShuffleExchangeRequest, ShuffleExchangeResponse}
+import message.merging.{MergeRequest, MergeResponse}
+import message.verification.{VerificationRequest, VerificationResponse}
+import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
+import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
+
 
 object Network {
   type IPAddr = String
@@ -29,19 +43,19 @@ object Network {
 import Network._
 import java.net.InetAddress
 
-class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext) {
+class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext)
+    extends Logging {
 
   var server: Server = null
   var state: MasterState = MasterInitial
-  val clients: List[WorkerStatus] = ???
+  var clientList: ListBuffer[WorkerStatus] = ListBuffer.empty
 
   def startServer(): Unit = {
     server = ServerBuilder
       .forPort(port)
-      .addService(ConnectionGrpc.bindService(new ServerImpl, executionContext))
+      .addService(MasterServiceGrpc.bindService(new ServerImpl(clientList), executionContext))
       .build()
       .start()
-
   }
 
   def ongoingServer(): Unit = {
@@ -65,6 +79,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
   }
 
+
   def sendMsg(msg: Message): Unit = {
     val msgType = msg.messasgeType
     // msgType match {}
@@ -87,46 +102,96 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   def divide_part(): Unit = {}
 
-}
-
-class ServerImpl extends ConnectionGrpc.Connection {
-  override def testMethod(
-      request: message.gRPCtest.TestRequest): Future[message.gRPCtest.TestResponse] = {
-    // Implement your logic here
-    val response = message.gRPCtest.TestResponse(reply = "Your response message")
-    Future.successful(response)
+  def ipLogging(): Unit = {
+    @tailrec
+    def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
+      assert(clientList != Nil)
+      logger.info(s"Worker IP - ${clientList.head.ip}")
+      if (clientList.tail != Nil) clientIPLogging(clientList.tail)
+    }
+    val ip = InetAddress.getLocalHost.getAddress
+    logger.info(
+      s"Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
+    clientIPLogging(clientList.toList)
   }
 
+}
+
+class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService {
+  
   override def establishConnection(
-      request: message.gRPCtest.ConnectionRequest): Future[message.gRPCtest.ConnectionResponse] = {
-    // Implement your logic here
-    val response = message.gRPCtest.ConnectionResponse(reply = "Your response message")
+      request: EstablishRequest): Future[EstablishResponse] = {
+    
+    val workerStatus = new WorkerStatus(request.workerIp, request.workerPort)
+    
+    clientList.synchronized {
+      clientList += workerStatus
+    }
+
+    val response = EstablishResponse(
+      isEstablishmentSuccessful=true
+    )
     Future.successful(response)
   }
 }
 
-class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[String], val outputDir: String) {
-  val ip: IPAddr = ???
-
+class NetworkClient(
+    masterIP: String,
+    masterPort: Int,
+    val ip: IPAddr,
+    val port: Port,
+    val inputDirs: List[String],
+    val outputDir: String,
+    val executionContext: ExecutionContext) {
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
   val master: Node = (masterIP, masterPort)
 
   var state: WorkerState = WorkerInitial
+  var clientService: ClientImpl = null
   var server: Server = null
+  
+  val channelToMaster = ManagedChannelBuilder
+    .forAddress(masterIP, masterPort)
+    .usePlaintext()
+    .build()
 
-  val channel = ManagedChannelBuilder
-    .forAddress(masterIP, masterPort) // Connect to master
-    .usePlaintext() // No encryption
-    .build() // Build the channel
+  val stubToMaster = MasterServiceGrpc.stub(channelToMaster)
 
-  // Create a stubs
-  val blockingStub = ConnectionGrpc.blockingStub(channel)
-  val nonBlockingStub = ConnectionGrpc.stub(channel)
+
+  def startServer(): Unit = {
+    clientService = new ClientImpl()
+    server = ServerBuilder
+      .forPort(port)
+      .addService(WorkerServiceGrpc.bindService(clientService, executionContext))
+      .build()
+      .start()
+  }  
 
   def connectToServer(): Unit = {
-    val request = new EstablishRequest(ip, port)
-    val response =  
-    state = WorkerSentSampleResponse
+    println("Try connecting to master")
+    val request = new EstablishRequest(
+      workerIp=ip, 
+      workerPort=port
+      )
+    val response: Future[EstablishResponse] = stubToMaster.establishConnection(request)
+
+    try {
+      val result = Await.result(response, 1.hour)
+      if (result.isEstablishmentSuccessful) {
+        println("Connection established")
+      }
+      else {
+        println("Connection failed")
+      }
+    
+    } 
+    catch{
+      case e: Exception => println(e)
+    }
+
+
+
+    
   }
 
   def send_msg(msg: Message): Unit = {}
@@ -147,8 +212,8 @@ class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[Strin
       case Failure(exception) => exception
     })
   }
-  // TODO send SampleResponse
 
+  // TODO send SampleResponse
   def partitioning(table: Table): Unit = {
     blocks.map(block => sendPartition(block.block.sorted, table))
     // The reason for tailrec inside function, see Tim's answer from
@@ -172,18 +237,70 @@ class NetworkClient(masterIP: String, masterPort: Int, val inputDirs: List[Strin
   def wait_until_all_data_received(): Unit = {}
 }
 
-class ClientImpl extends ConnectionGrpc.Connection {
-  override def testMethod(
-      request: message.gRPCtest.TestRequest): Future[message.gRPCtest.TestResponse] = {
-    // Implement your logic here
-    val response = message.gRPCtest.TestResponse(reply = "Your response message")
+class ClientImpl extends WorkerServiceGrpc.WorkerService {
+  
+  override def performSampling(
+      request: SampleRequest): Future[SampleResponse] = {
+    val repeatedSampleDataChunks = Seq(???) // TODO: Sample Datas and send it to master
+    
+    val response = SampleResponse(
+      isSamplingSuccessful=true,
+      samples=repeatedSampleDataChunks
+    )
     Future.successful(response)
   }
 
-  override def establishConnection(
-      request: message.gRPCtest.ConnectionRequest): Future[message.gRPCtest.ConnectionResponse] = {
-    // Implement your logic here
-    val response = message.gRPCtest.ConnectionResponse(reply = "Your response message")
+  override def performPartitioning(
+      request: PartitionRequest): Future[PartitionResponse] = {
+    val keyRangeTable = request.table
+
+      
+    // TODO: Perform Partitioning here
+    val response = PartitionResponse(
+      isPartitioningSuccessful=true
+    )
+    Future.successful(response)
+  }
+
+  override def runShuffling(
+      request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
+    
+    val response = ShuffleRunResponse(
+      isShufflingSuccessful=true
+    )
+    Future.successful(response)
+  }
+
+  override def exchangeData(
+      request: ShuffleExchangeRequest): Future[ShuffleExchangeResponse] = {
+    
+    // Pack values and send data
+    val data = Seq(???)
+    
+    val response = ShuffleExchangeResponse(
+      sourceIp="",
+      sourcePort=0,
+      destinationIp="",
+      destinationPort=0,
+
+      data=data
+    )
+    Future.successful(response)
+  }
+
+  override def mergingData(
+      request: MergeRequest): Future[MergeResponse] = {
+    val response = MergeResponse(
+      isMergeSuccessful=true
+    )
+    Future.successful(response)
+  }
+
+  override def verifyKeyRange(
+      request: VerificationRequest): Future[VerificationResponse] = {
+    val response = VerificationResponse(
+      isVerificationSuccessful=true
+    )
     Future.successful(response)
   }
 }
