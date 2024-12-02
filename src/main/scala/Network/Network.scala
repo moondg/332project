@@ -51,6 +51,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   var server: Server = null
   var state: MasterState = MasterInitial
   var clientList: ListBuffer[WorkerStatus] = ListBuffer.empty
+  var sample: Array[String] = Array.empty[String]
 
   def startServer(): Unit = {
     server = ServerBuilder
@@ -67,7 +68,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
           pivot_check()
         }
         case MasterMakingPartition => {
-          divide_part()
+          divideKeyRange()
         }
         case MasterPendingMergeResponse => {}
       }
@@ -101,8 +102,6 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   }
 
-  def divide_part(): Unit = {}
-
   def ipLogging(): Unit = {
     @tailrec
     def clientIPLogging(clientList: List[WorkerStatus]): Unit = {
@@ -116,6 +115,27 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     clientIPLogging(clientList.toList)
   }
 
+  def divideKeyRange(): Unit = {
+    val sampleCountPerWorker: Int = sample.length / numberOfWorkers
+    @tailrec
+    def divideKeyRangeRecur(
+        data: List[Key],
+        dataCount: Int,
+        whoseRange: Int,
+        rangeHead: Key): Unit = {
+      if (whoseRange == numberOfWorkers - 1) {
+        // (head, MAXIMUM)
+        clientList(numberOfWorkers - 1).keyRange = (rangeHead, 0xff.toChar.toString * 10)
+      } else if (dataCount == 1) {
+        clientList(whoseRange).keyRange = (rangeHead, data.head)
+        divideKeyRangeRecur(data.tail, sampleCountPerWorker, whoseRange + 1, data.head + 1)
+      } else {
+        divideKeyRangeRecur(data.tail, dataCount - 1, whoseRange, rangeHead)
+      }
+    }
+    // rangeHead = MINIMUM
+    divideKeyRangeRecur(sample.sorted.toList, sampleCountPerWorker, 0, 0x00.toChar.toString * 10)
+  }
 }
 
 class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService {
@@ -162,10 +182,10 @@ class NetworkClient(
       .build()
       .start()
   }
-  // TODO: Remove Println and replace it with logging
+
   def connectToServer(): Unit = {
-    println("[Worker] Trying to establish connection to master")
-    
+    logger.info("[Worker] Trying to establish connection to master")
+
     // Create a request to establish connection
     val request = new EstablishRequest(workerIp = ip, workerPort = port)
 

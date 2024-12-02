@@ -8,7 +8,7 @@ object Key {
       start <= key && key <= end
     }
     def contains(record: Record): Boolean = {
-      start <= record.key && record.key <= end
+      contains(record.key)
     }
   }
 }
