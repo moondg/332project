@@ -40,15 +40,15 @@ import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
 
 class NetworkClient(
     val master: Node,
-    val ip: IPAddr,
-    val port: Port,
+    val client: Node,
     val inputDirs: List[String],
     val outputDir: String,
     val executionContext: ExecutionContext)
     extends Logging {
+
+  val (ip, port) = client
   lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
 
-  var state: WorkerState = WorkerInitial
   var clientService: ClientImpl = null
   var server: Server = null
 
@@ -93,9 +93,7 @@ class NetworkClient(
 
   def send_msg(msg: Message): Unit = {}
 
-  def shutdown(): Unit = {
-    state = WorkerFinished
-  }
+  def shutdown(): Unit = {}
 
   def sendSamples(sample: List[Key], node: Node): Unit = {}
   def sendRecords(records: List[Record], node: Node): Unit = {}

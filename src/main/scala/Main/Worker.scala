@@ -5,14 +5,14 @@ import Core.Record.convertFromString
 import Network.NetworkClient
 import Network.Network.{IPAddr, Port}
 
-import java.net.InetAddress
-
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 import scala.io.Source
 import scala.concurrent.ExecutionContext
+
+import Utils.Prelude._
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -27,24 +27,17 @@ object Worker {
       argsFormat)
 
     val masterNetwork = args(0).split(":")
-    val masterIP: IPAddr = masterNetwork(0)
-    val masterPort: Port = masterNetwork(1).toInt
+    val master = (masterNetwork(0): IPAddr, masterNetwork(1).toInt: Port)
 
-    val ip: Array[Byte] = InetAddress.getLocalHost.getAddress
-    val ipString: String =
-      ip(0).toString + "." + ip(1).toString + "." + ip(2).toString + "." + ip(3).toString
-    val serverSocket = new java.net.ServerSocket(0)
-    val port: Port = serverSocket.getLocalPort
+    val ip = getIPAddr
+    val port: Port = new java.net.ServerSocket(0).getLocalPort
 
     val inputDirs: List[String] = inputDirParse(args.toList)
     val outputDir: String = args(args.length - 1)
 
-    lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
-
     val network = new NetworkClient(
-      (masterIP, masterPort),
-      ipString,
-      port,
+      master,
+      (ip, port),
       inputDirs,
       outputDir,
       executionContext = ExecutionContext.global)
