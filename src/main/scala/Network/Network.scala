@@ -124,7 +124,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
         whoseRange: Int,
         rangeHead: Key): Unit = {
       if (whoseRange == numberOfWorkers - 1) {
-        clientList(numberOfWorkers - 1).keyRange = (rangeHead, "MAXIMUM")
+        //(head, MAXIMUM)
+        clientList(numberOfWorkers - 1).keyRange = (rangeHead, 0xff.toChar.toString * 10)
       } else if (dataCount == 1) {
         clientList(whoseRange).keyRange = (rangeHead, data.head)
         divideKeyRangeRecur(data.tail, sampleCountPerWorker, whoseRange + 1, data.head + 1)
@@ -132,7 +133,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
         divideKeyRangeRecur(data.tail, dataCount - 1, whoseRange, rangeHead)
       }
     }
-    divideKeyRangeRecur(sample.sorted.toList, sampleCountPerWorker, 0, "MINIMUM")
+    //rangeHead = MINIMUM
+    divideKeyRangeRecur(sample.sorted.toList, sampleCountPerWorker, 0, 0x00.toChar.toString * 10)
   }
 }
 
