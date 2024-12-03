@@ -5,15 +5,14 @@ import Core.Record.convertFromString
 import Network.NetworkClient
 import Network.Network.{IPAddr, Port}
 
+import java.net.InetAddress
+
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 import scala.io.Source
 import scala.concurrent.ExecutionContext
-
-import Utils.Prelude._
-import Network.Network.Node
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -34,14 +33,18 @@ object Worker {
     val outputDir: String = args.last
 
     val network = new NetworkClient(
-      master,
-      client,
+      (masterIP, masterPort),
+      (ipString, port),
       inputDirs,
       outputDir,
       executionContext = ExecutionContext.global)
 
     try {
+      network.start()
       network.connectToServer()
+      while (true) {
+        Thread.sleep(1000)
+      }
       // network.sendRecords()
       network.send_unmatched_data()
       network.wait_until_all_data_received()
@@ -50,5 +53,6 @@ object Worker {
     } finally {
       network.shutdown()
     }
+
   }
 }

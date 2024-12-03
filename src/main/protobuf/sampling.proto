@@ -16,6 +16,6 @@ message SampleRequest {
 message SampleResponse {
     bool isSamplingSuccessful = 1;
 
-    // Data chunks of key
-    repeated DataChunk samples = 3;
+    // Data chunk of key
+    DataChunk sample = 3;
 }
