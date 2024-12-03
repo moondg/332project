@@ -95,8 +95,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       s"[Master] Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
     clientIPLogging(clientList.toList)
   }
-  */
-  
+   */
+
   def divideKeyRange(): Unit = {
     val sampleCountPerWorker: Int = sample.length / numberOfWorkers
     @tailrec
@@ -120,7 +120,9 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 }
 
-class ServerImpl(clientList: ListBuffer[WorkerStatus]) extends MasterServiceGrpc.MasterService with Logging{
+class ServerImpl(clientList: ListBuffer[WorkerStatus])
+    extends MasterServiceGrpc.MasterService
+    with Logging {
 
   override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
 

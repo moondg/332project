@@ -29,10 +29,9 @@ object Worker {
 
     val masterNetwork = args(0).split(":")
     val master: Node = (masterNetwork(0), masterNetwork(1).toInt)
-    val client: Node = (getIPAddr(), new java.net.ServerSocket(0).getLocalPort)
-
+    val client: Node = (getIPAddr(), getPort())
     val inputDirs: List[String] = inputDirParse(args.toList)
-    val outputDir: String = args(args.length - 1)
+    val outputDir: String = args.last
 
     val network = new NetworkClient(
       master,
@@ -51,6 +50,5 @@ object Worker {
     } finally {
       network.shutdown()
     }
-
   }
 }

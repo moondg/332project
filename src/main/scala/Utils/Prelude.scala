@@ -1,13 +1,17 @@
 package Utils
 
-import Network.Network.IPAddr
+import Network.Network.{IPAddr, Port}
+import Core.Key._
 import scala.annotation.tailrec
+import message.common.KeyRange
 
 object Prelude {
   def getIPAddr(): IPAddr = {
-    import java.net.InetAddress
-    val raw = InetAddress.getLocalHost.getAddress
+    val raw = java.net.InetAddress.getLocalHost.getAddress
     raw.foldRight("")((byte, acc) => "." ++ byte.toString ++ acc).tail
+  }
+  def getPort(): Port = {
+    new java.net.ServerSocket(0).getLocalPort
   }
 
   def inputDirParse(args: List[String]): List[String] = {
