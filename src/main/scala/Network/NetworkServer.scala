@@ -51,7 +51,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   var server: Server = null
   var state: MasterState = MasterInitial
   var clients: ListBuffer[WorkerStatus] = ListBuffer.empty
-  var sample: Array[Byte] = Array.emptyByteArray
+  var sample: Array[Key] = Array.empty[Key]
 
   var channels: Seq[ManagedChannel] = null
   var stubs: Seq[WorkerServiceGrpc.WorkerServiceStub] = null
@@ -173,26 +173,18 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   def divideKeyRange(): Unit = {
     val sampleCountPerWorker: Int = sample.length / numberOfWorkers
+    val groupedSample = sample.sorted.toList.grouped(sampleCountPerWorker)
     @tailrec
-    def divideKeyRangeRecur(
-        data: List[Key],
-        dataCount: Int,
-        whoseRange: Int,
-        rangeHead: Key): Unit = {
-      if (whoseRange == numberOfWorkers - 1) {
-        // (head, MAXIMUM)
-        clients(numberOfWorkers - 1).keyRange = (rangeHead, 0xff.toChar.toString * 10)
-      } else if (dataCount == 1) {
-        clients(whoseRange).keyRange = (rangeHead, data.head)
-        divideKeyRangeRecur(data.tail, sampleCountPerWorker, whoseRange + 1, data.head + 1)
-      } else {
-        divideKeyRangeRecur(data.tail, dataCount - 1, whoseRange, rangeHead)
+    def divideKeyRangeRec(clientNum: Int, head: Key): Unit = {
+      if (groupedSample.hasNext) {
+        val last = groupedSample.next().last
+        clients(clientNum).keyRange = (head, last)
+        divideKeyRangeRec(clientNum + 1, last)
       }
     }
-    // rangeHead = MINIMUM
-    divideKeyRangeRecur(sample.sorted.toList, sampleCountPerWorker, 0, 0x00.toChar.toString * 10)
+    divideKeyRangeRec(0, ???)
+    clients.last.keyRange = (clients.last.keyRange._1, ???)
   }
-  */
 }
 
 class ServerImpl(clients: ListBuffer[WorkerStatus])
