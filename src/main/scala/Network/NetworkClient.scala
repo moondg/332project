@@ -147,27 +147,45 @@ class NetworkClient(
     val file = new File(outputFilePath)
     val fileWriter = new FileOutputStream(file, file.exists())
     var counter: Int = 0
+    var emptyBlock: Int = 0
     val output: Array[Record] = Array.empty[Record]
-    implicit val pqOrdering: Ordering[(Record, Int)] = Ordering.by(_._1)
-    val priorityQueue = new mutable.PriorityQueue[(Record, Int)]()
+    val tournamentTree: Array[(Record, Int)] = Array.empty[(Record, Int)]
 
     @tailrec
-    def pqPushInit(cnt: Int): Unit = {
+    def treePushInit(cnt: Int): Unit = {
       if (cnt < blocks.length) {
-        priorityQueue.addOne(blocks(cnt).block.head, cnt)
-        pqPushInit(cnt + 1)
+        tournamentTree.appended(blocks(cnt).block.head, cnt)
+        blocks(cnt).block.drop(1)
+        treePushInit(cnt + 1)
+      }
+    }
+    def findingMinValueIndex(tree: Array[(Record, Int)]): Int = {
+      if (tree.length == 1) 0
+      else {
+        val divideLength = (tree.length + 1) / 2
+        val dividedTree = tree.grouped(divideLength)
+        val first = findingMinValueIndex(dividedTree.next())
+        val second = findingMinValueIndex(dividedTree.next()) + divideLength
+        if (tree(first)._1.key.compare(tree(second)._1.key) > 0) first
+        else second
       }
     }
     @tailrec
     def merge(): Unit = {
-      val (data, num) = priorityQueue.dequeue()
+      val treeIndex = findingMinValueIndex(tournamentTree)
+      val (data, num) = tournamentTree(treeIndex)
+      assert(num >= 0)
       if (blocks(num).block.nonEmpty) {
-        priorityQueue.addOne(blocks(num).block.head, num)
+        tournamentTree.updated(treeIndex, (blocks(num).block.head, num))
         blocks(num).block.drop(1)
+      } else {
+        tournamentTree.updated(treeIndex, (Key.max, -1))
+        emptyBlock += 1
       }
+
       counter += 1
       output.appended(data)
-      if (counter % 100 == 0 || priorityQueue.isEmpty) {
+      if (counter % 100 == 0 || emptyBlock == blocks.length) {
         for (datum <- output) {
           fileWriter.write(datum.key.key)
           fileWriter.write(datum.value)
@@ -175,12 +193,12 @@ class NetworkClient(
         }
         output.drop(output.length)
       }
-      if (priorityQueue.nonEmpty) {
+      if (emptyBlock < blocks.length) {
         merge()
       }
     }
 
-    pqPushInit(0)
+    treePushInit(0)
     merge()
     fileWriter.close()
     counter
@@ -191,7 +209,8 @@ class NetworkClient(
   def wait_until_all_data_received(): Unit = {}
 }
 
-class ClientImpl(val inputDirs: List[String], val OutputDir: String) extends WorkerServiceGrpc.WorkerService {
+class ClientImpl(val inputDirs: List[String], val OutputDir: String)
+    extends WorkerServiceGrpc.WorkerService {
 
   override def sampleData(
       request: SampleRequest,
@@ -219,24 +238,20 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String) extends Wor
     request.table match {
       case Some(keyRangeTableProto) =>
         val keyRangeTable = keyRangeTableProto.rows.map { keyRangeProto =>
-          val start = new Key(
-            keyRangeProto.range match {
-              case Some(range) => range.start.toByteArray
-              case None => Array[Byte]()
-            }
-          )
-          
-          val end = new Key(
-            keyRangeProto.range match {
-              case Some(range) => range.end.toByteArray
-              case None => Array[Byte]()
-            }
-          )
+          val start = new Key(keyRangeProto.range match {
+            case Some(range) => range.start.toByteArray
+            case None => Array[Byte]()
+          })
+
+          val end = new Key(keyRangeProto.range match {
+            case Some(range) => range.end.toByteArray
+            case None => Array[Byte]()
+          })
 
           val node = (keyRangeProto.ip, keyRangeProto.port)
-          (new Core.KeyRange(start=start, end=end), node)
+          (new Core.KeyRange(start = start, end = end), node)
         }
-     
+
     }
     // TODO: Perform Partitioning here
     val response = PartitionResponse(isPartitioningSuccessful = true)
