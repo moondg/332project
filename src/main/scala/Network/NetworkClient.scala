@@ -24,6 +24,7 @@ import Core.Table._
 import Core.Key._
 import Core.{Key, KeyRange}
 import Core.Block._
+import Utils.Prelude._
 
 // Import gRPC libraries
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
@@ -50,7 +51,12 @@ class NetworkClient(
     extends Logging {
 
   val (ip, port) = client
-  lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile(_))
+  val inputFiles = for {
+    dir <- inputDirs
+    file <- getFiles(dir)
+  } yield dir ++ "/" ++ file
+
+  lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
 
   var clientService: ClientImpl = null
   var server: Server = null
