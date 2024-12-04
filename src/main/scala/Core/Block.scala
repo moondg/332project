@@ -11,8 +11,8 @@ object Block {
         .fromFile(fileName, "ISO8859-1")
         .map(_.toByte)
         .toArray
-        .grouped(10)
-        .map(convertFrom(_))
+        .grouped(Core.Constant.Size.record)
+        .map(byteArr => convertFrom(byteArr))
         .toList)
   }
 }

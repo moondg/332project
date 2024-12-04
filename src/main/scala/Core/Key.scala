@@ -4,8 +4,8 @@ object Key {
   def prev(key: Key): Key = {
     new Key(key.key.init :+ (key.key.last - 1).toByte)
   }
-  def max: Key = new Key(Array.fill(10) { 255.toByte })
-  def min: Key = new Key(Array.fill(10) { 0.toByte })
+  def max: Key = new Key(Array.fill(Core.Constant.Size.key) { 255.toByte })
+  def min: Key = new Key(Array.fill(Core.Constant.Size.key) { 0.toByte })
 }
 
 class Key(val key: Array[Byte]) extends Ordered[Key] {
