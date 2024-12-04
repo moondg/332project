@@ -152,16 +152,15 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
       .map(makeBlockFromFile(_))
       .map(block => block.block take (block.size * percentageOfSampling / 100.0).ceil.toInt)
       .map(records => records.map(_.key))
+      .flatten
+    val length = samples.length
 
-    samples.flatten.zipWithIndex.foreach { case (key, i) =>
+    samples.zipWithIndex.foreach { case (key, i) =>
       val response = SampleResponse(
         isSamplingSuccessful = true,
         // Option[message.common.DataChunk]
         sample = Some(
-          DataChunk(
-            data = ByteString.copyFrom(key.key),
-            chunkIndex = i,
-            isEOF = (i == samples.length))))
+          DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = i, isEOF = (i == length))))
       responseObserver.onNext(response)
     }
     responseObserver.onCompleted()
