@@ -1,7 +1,7 @@
 import Core.Block
 import Core.Block._
 import Core.Key._
-import Core.Record.convertFromString
+import Core.Record._
 import Network.NetworkClient
 import Network.Network.{IPAddr, Port, Node}
 

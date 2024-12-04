@@ -11,15 +11,12 @@ object Master {
     val port = if (args.length == 1) 50051 else args(1).toInt
 
     // Run NetworkServer
-    val networkServer = new NetworkServer(
-      port, 
-      numberOfWorkers, 
-      executionContext = ExecutionContext.global
-      )
+    val networkServer =
+      new NetworkServer(port, numberOfWorkers, executionContext = ExecutionContext.global)
 
     try {
       networkServer.start()
-      
+
       println("Waiting for workers to connect")
       // Block until networkServer.clientList's length is equal to numberOfWorkers
       while (networkServer.clients.length < numberOfWorkers) { Thread.sleep(1000) }
