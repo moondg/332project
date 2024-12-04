@@ -23,17 +23,19 @@ object Key {
     }
     new Key(nextRec(key.key))
   }
-  def max: Key = new Key(Array.fill(Core.Constant.Size.key) { 255.toByte })
-  def min: Key = new Key(Array.fill(Core.Constant.Size.key) { 0.toByte })
+  def max: Key = new Key(Array.fill(Core.Constant.Size.key) { 0xff.toByte })
+  def min: Key = new Key(Array.fill(Core.Constant.Size.key) { 0x00.toByte })
 }
 
 class Key(val key: Array[Byte]) extends Ordered[Key] {
+  def hex: String = key.map("%02x " format _).mkString
   override def compare(that: Key): Int = {
     this.key.zip(that.key).map { case (l, r) => l.toChar - r.toChar }.find(_ != 0).getOrElse(0)
   }
 }
 
 class KeyRange(val start: Key, val end: Key) {
+  def hex: String = s"[${start.hex} -  ${end.hex}]"
   def contains(key: Key): Boolean = {
     start <= key && key <= end
   }
