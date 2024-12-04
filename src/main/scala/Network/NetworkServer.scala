@@ -150,21 +150,15 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 
   def requestPartitioning(keyRangeTable: Table): Unit = {
-    val keyRangeTableProto = KeyRangeTable(
-      keyRangeTable.map {
-        case (keyRange, node) =>
-          KeyRangeTableRow(
-            ip = node._1,
-            port = node._2,
-            range = Some(
-              message.common.KeyRange(
-                start = ByteString.copyFrom(keyRange.start.key),
-                end = ByteString.copyFrom(keyRange.end.key)
-              )
-            )
-          )
-      }
-    )
+    val keyRangeTableProto = KeyRangeTable(keyRangeTable.map { case (keyRange, node) =>
+      KeyRangeTableRow(
+        ip = node._1,
+        port = node._2,
+        range = Some(
+          message.common.KeyRange(
+            start = ByteString.copyFrom(keyRange.start.key),
+            end = ByteString.copyFrom(keyRange.end.key))))
+    })
 
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
@@ -241,9 +235,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 }
 
-class ServerImpl(clients: ListBuffer[Node])
-    extends MasterServiceGrpc.MasterService
-    with Logging {
+class ServerImpl(clients: ListBuffer[Node]) extends MasterServiceGrpc.MasterService with Logging {
 
   override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
 

@@ -24,17 +24,17 @@ object Master {
 
       println("All workers connected")
       networkServer.createChannels()
-      
+
       // Sampling Phase
       networkServer.requestSampling()
       val samples = networkServer.sample
-      
-      // Partitioning Phase
-      // TODO: Create a KeyRangeTable here
-      val keyRangeTable: Table = null
-      networkServer.requestPartitioning(keyRangeTable)
 
-      
+      // Partitioning Phase
+      val table: Table = networkServer
+        .divideKeyRange()
+        .zip(networkServer.clients)
+        .toList
+      networkServer.requestPartitioning(table)
 
     } catch {
       case except: Exception => println(except)
