@@ -3,7 +3,7 @@ import Core.Block._
 import Core.Key._
 import Core.Record.convertFromString
 import Network.NetworkClient
-import Network.Network.{IPAddr, Port}
+import Network.Network.{IPAddr, Port, Node}
 
 import java.net.InetAddress
 
@@ -13,6 +13,8 @@ import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 import scala.io.Source
 import scala.concurrent.ExecutionContext
+
+import Utils.Prelude._
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -33,8 +35,8 @@ object Worker {
     val outputDir: String = args.last
 
     val network = new NetworkClient(
-      (masterIP, masterPort),
-      (ipString, port),
+      master,
+      client,
       inputDirs,
       outputDir,
       executionContext = ExecutionContext.global)

@@ -11,7 +11,10 @@ object Prelude {
     raw.foldRight("")((byte, acc) => "." ++ byte.toString ++ acc).tail
   }
   def getPort(): Port = {
-    new java.net.ServerSocket(0).getLocalPort
+    val socket = new java.net.ServerSocket(0)
+    val port = socket.getLocalPort
+    socket.close()
+    port
   }
 
   def inputDirParse(args: List[String]): List[String] = {
