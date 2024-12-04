@@ -101,14 +101,15 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
             value.sample match {
               case Some(datachunk) =>
                 haveReachedEOF = datachunk.isEOF
-                
+
                 // Synchronize buffer
                 buffer.synchronized {
                   buffer += new Key(datachunk.data.toByteArray)
                 }
 
                 // convert data to hex and print
-                println(s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
+                println(
+                  s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
               case None =>
                 onError(new Exception("Received empty data chunk"))
             }
@@ -120,7 +121,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
           override def onCompleted(): Unit = {
             if (haveReachedEOF) {
-              // 
+              //
               promise.success(buffer.toList)
             } else {
               promise.failure(new Exception("Did not receive EOF"))
@@ -138,7 +139,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       val allResponses = Await.result(Future.sequence(responses), 10.seconds)
       sample = allResponses.flatten.toList
       println(s"Number of samples: ${sample.length}")
-      
+
     } catch {
       case e: Exception => {
         state = MasterReceivedSampleResponseFailure
@@ -179,7 +180,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   def divideKeyRange(): List[KeyRange] = {
     val samplePerWorker: Int = sample.length / numberOfWorkers
     val groupedSample = sample.sorted.grouped(samplePerWorker).toList
-    def acc(rawRanges: List[Array[Key]], start: Key): List[KeyRange] = {
+    def acc(rawRanges: List[List[Key]], start: Key): List[KeyRange] = {
       rawRanges match {
         case Nil => List()
         case a :: Nil => List(new KeyRange(start, Key.max))
