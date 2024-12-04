@@ -51,7 +51,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   var server: Server = null
   var state: MasterState = MasterInitial
   var clients: ListBuffer[WorkerStatus] = ListBuffer.empty
-  var sample: Array[Key] = Array.empty[Key]
+  var sample: List[Key] = List.empty[Key]
 
   var channels: Seq[ManagedChannel] = null
   var stubs: Seq[WorkerServiceGrpc.WorkerServiceStub] = null
@@ -86,13 +86,13 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   def requestSampling(): Unit = {
 
     // Perform this to each worker
-    val responses: Seq[Future[Array[Byte]]] = clients.zip(stubs).toSeq.map {
+    val responses: Seq[Future[List[Key]]] = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
         val request =
           SampleRequest(workerIp = client.ip, workerPort = client.port, percentageOfSampling = 1)
 
-        val promise = Promise[Array[Byte]]()
-        val buffer = ListBuffer.empty[Byte]
+        val promise = Promise[List[Key]]()
+        val buffer = ListBuffer.empty[Key]
         var haveReachedEOF = false
 
         // Define the response observer to handle the response from the worker
@@ -101,8 +101,14 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
             value.sample match {
               case Some(datachunk) =>
                 haveReachedEOF = datachunk.isEOF
-                buffer ++= datachunk.data.toByteArray
-                println(s"data received: ${datachunk.data.toByteArray}")
+                
+                // Synchronize buffer
+                buffer.synchronized {
+                  buffer += new Key(datachunk.data.toByteArray)
+                }
+
+                // convert data to hex and print
+                println(s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
               case None =>
                 onError(new Exception("Received empty data chunk"))
             }
@@ -114,26 +120,25 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
           override def onCompleted(): Unit = {
             if (haveReachedEOF) {
-              promise.success(buffer.toArray)
+              // 
+              promise.success(buffer.toList)
             } else {
               promise.failure(new Exception("Did not receive EOF"))
             }
           }
-
-          // Concurrently run the sampleData request
-          def receivedResponse: Future[Array[Byte]] = promise.future
         }
 
         // Request sample data for current worker
         stub.sampleData(request, responseObserver)
-        responseObserver.receivedResponse
+        promise.future
       }
     }
 
     try {
-      val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
-      sample = allResponses.map(k => new Key(k.toArray)).toArray
-      println(s"Sample data received: ${sample.length} bytes")
+      val allResponses = Await.result(Future.sequence(responses), 10.seconds)
+      sample = allResponses.flatten.toList
+      println(s"Number of samples: ${sample.length}")
+      
     } catch {
       case e: Exception => {
         state = MasterReceivedSampleResponseFailure
