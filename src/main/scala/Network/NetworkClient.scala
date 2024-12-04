@@ -2,6 +2,10 @@ package Network
 
 import Network._
 
+import java.util.logging.FileHandler
+import scala.::
+import scala.collection.mutable
+
 // Import necessary scala libraries
 import scala.concurrent.{ExecutionContext, Future, Promise, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,6 +45,8 @@ import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
 import javax.xml.crypto.Data
+
+import java.io.{File, FileOutputStream}
 
 class NetworkClient(
     val master: Node,
@@ -134,6 +140,50 @@ class NetworkClient(
         }
       }
     }
+  }
+
+  def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
+    lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile)
+    val file = new File(outputFilePath)
+    val fileWriter = new FileOutputStream(file, file.exists())
+    var counter: Int = 0
+    val output: Array[Record] = Array.empty[Record]
+    implicit val pqOrdering: Ordering[(Record, Int)] = Ordering.by(_._1)
+    val priorityQueue = new mutable.PriorityQueue[(Record, Int)]()
+
+    @tailrec
+    def pqPushInit(cnt: Int): Unit = {
+      if (cnt < blocks.length) {
+        priorityQueue.addOne(blocks(cnt).block.head, cnt)
+        pqPushInit(cnt + 1)
+      }
+    }
+    @tailrec
+    def merge(): Unit = {
+      val (data, num) = priorityQueue.dequeue()
+      if (blocks(num).block.nonEmpty) {
+        priorityQueue.addOne(blocks(num).block.head, num)
+        blocks(num).block.drop(1)
+      }
+      counter += 1
+      output.appended(data)
+      if (counter % 100 == 0 || priorityQueue.isEmpty) {
+        for (datum <- output) {
+          fileWriter.write(datum.key.key)
+          fileWriter.write(datum.value)
+          fileWriter.write("\n".getBytes)
+        }
+        output.drop(output.length)
+      }
+      if (priorityQueue.nonEmpty) {
+        merge()
+      }
+    }
+
+    pqPushInit(0)
+    merge()
+    fileWriter.close()
+    counter
   }
 
   def send_unmatched_data(): Unit = {}
