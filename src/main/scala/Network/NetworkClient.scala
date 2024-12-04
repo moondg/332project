@@ -69,7 +69,7 @@ class NetworkClient(
   val stubToMaster = MasterServiceGrpc.stub(channelToMaster)
 
   def start(): Unit = {
-    clientService = new ClientImpl()
+    clientService = new ClientImpl(inputDirs, outputDir)
     server = ServerBuilder
       .forPort(port)
       .addService(WorkerServiceGrpc.bindService(clientService, executionContext))
@@ -141,7 +141,7 @@ class NetworkClient(
   def wait_until_all_data_received(): Unit = {}
 }
 
-class ClientImpl extends WorkerServiceGrpc.WorkerService {
+class ClientImpl(val inputDirs: List[String], val OutputDir: String) extends WorkerServiceGrpc.WorkerService {
 
   override def sampleData(
       request: SampleRequest,
