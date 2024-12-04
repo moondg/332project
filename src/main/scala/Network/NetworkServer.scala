@@ -177,18 +177,16 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
    */
 
   def divideKeyRange(): List[KeyRange] = {
-    val sampleCountPerWorker: Int = sample.length / numberOfWorkers
-    val groupedSample = sample.sorted.grouped(sampleCountPerWorker)
-    // @tailrec // TODO: fix this, bjr
-    def divideKeyRangeRec(head: Key): List[KeyRange] = {
-      if (groupedSample.hasNext) {
-        val last = groupedSample.next().last
-        new KeyRange(head, last) :: divideKeyRangeRec(last)
-      } else {
-        List()
+    val samplePerWorker: Int = sample.length / numberOfWorkers
+    val groupedSample = sample.sorted.grouped(samplePerWorker).toList
+    def acc(rawRanges: List[Array[Key]], start: Key): List[KeyRange] = {
+      rawRanges match {
+        case Nil => List()
+        case a :: Nil => List(new KeyRange(start, Key.max))
+        case h :: t => new KeyRange(start, h.last) :: acc(t, next(h.last))
       }
     }
-    divideKeyRangeRec(Key.min)
+    acc(groupedSample, Key.min)
   }
 }
 
