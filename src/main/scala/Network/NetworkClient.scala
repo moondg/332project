@@ -51,10 +51,7 @@ class NetworkClient(
     extends Logging {
 
   val (ip, port) = client
-  val inputFiles = for {
-    dir <- inputDirs
-    file <- getFiles(dir)
-  } yield dir ++ "/" ++ file
+  val inputFiles = getAllFiles(inputDirs)
 
   lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
 
@@ -141,7 +138,8 @@ class NetworkClient(
   def wait_until_all_data_received(): Unit = {}
 }
 
-class ClientImpl(val inputDirs: List[String], val OutputDir: String) extends WorkerServiceGrpc.WorkerService {
+class ClientImpl(val inputDirs: List[String], val OutputDir: String)
+    extends WorkerServiceGrpc.WorkerService {
 
   override def sampleData(
       request: SampleRequest,
@@ -149,17 +147,21 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String) extends Wor
 
     val percentageOfSampling = request.percentageOfSampling
 
-    // TODO: Sample Data here
+    val inputFiles = getAllFiles(inputDirs)
+    val samples = inputFiles
+      .map(makeBlockFromFile(_))
+      .map(block => block.block take (block.size * percentageOfSampling / 100.0).ceil.toInt)
+      .map(records => records.map(_.key))
 
-    (1 to 10000).foreach { i =>
+    samples.flatten.zipWithIndex.foreach { case (key, i) =>
       val response = SampleResponse(
         isSamplingSuccessful = true,
         // Option[message.common.DataChunk]
         sample = Some(
           DataChunk(
-            data = ByteString.copyFrom(java.nio.ByteBuffer.allocate(4).putInt(i).array()),
+            data = ByteString.copyFrom(key.key),
             chunkIndex = i,
-            isEOF = (i == 10000))))
+            isEOF = (i == samples.length))))
       responseObserver.onNext(response)
     }
     responseObserver.onCompleted()
@@ -169,24 +171,20 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String) extends Wor
     request.table match {
       case Some(keyRangeTableProto) =>
         val keyRangeTable = keyRangeTableProto.rows.map { keyRangeProto =>
-          val start = new Key(
-            keyRangeProto.range match {
-              case Some(range) => range.start.toByteArray
-              case None => Array[Byte]()
-            }
-          )
-          
-          val end = new Key(
-            keyRangeProto.range match {
-              case Some(range) => range.end.toByteArray
-              case None => Array[Byte]()
-            }
-          )
+          val start = new Key(keyRangeProto.range match {
+            case Some(range) => range.start.toByteArray
+            case None => Array[Byte]()
+          })
+
+          val end = new Key(keyRangeProto.range match {
+            case Some(range) => range.end.toByteArray
+            case None => Array[Byte]()
+          })
 
           val node = (keyRangeProto.ip, keyRangeProto.port)
-          (new Core.KeyRange(start=start, end=end), node)
+          (new Core.KeyRange(start = start, end = end), node)
         }
-     
+
     }
     // TODO: Perform Partitioning here
     val response = PartitionResponse(isPartitioningSuccessful = true)
