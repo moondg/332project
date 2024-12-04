@@ -36,7 +36,7 @@ import message.shuffling.{ShuffleRunRequest, ShuffleRunResponse, ShuffleExchange
 import message.merging.{MergeRequest, MergeResponse}
 import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
-import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
+import message.common.{DataChunk, KeyRangeTableRow, KeyRangeTable}
 
 // Define the Network object
 object Network {
@@ -132,7 +132,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
     try {
       val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
-      sample = allResponses.flatten.toArray
+      sample = allResponses.map(k => new Key(k.toArray)).toArray
       println(s"Sample data received: ${sample.length} bytes")
     } catch {
       case e: Exception => {
@@ -171,19 +171,19 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
    */
 
-  def divideKeyRange(): Unit = {
+  def divideKeyRange(): List[KeyRange] = {
     val sampleCountPerWorker: Int = sample.length / numberOfWorkers
-    val groupedSample = sample.sorted.toList.grouped(sampleCountPerWorker)
-    @tailrec
-    def divideKeyRangeRec(clientNum: Int, head: Key): Unit = {
+    val groupedSample = sample.sorted.grouped(sampleCountPerWorker)
+    // @tailrec // TODO: fix this, bjr
+    def divideKeyRangeRec(head: Key): List[KeyRange] = {
       if (groupedSample.hasNext) {
         val last = groupedSample.next().last
-        clients(clientNum).keyRange = (head, last)
-        divideKeyRangeRec(clientNum + 1, last)
+        new KeyRange(head, last) :: divideKeyRangeRec(last)
+      } else {
+        List()
       }
     }
-    divideKeyRangeRec(0, ???)
-    clients.last.keyRange = (clients.last.keyRange._1, ???)
+    divideKeyRangeRec(Key.min)
   }
 }
 

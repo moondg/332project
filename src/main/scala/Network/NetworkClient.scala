@@ -22,13 +22,13 @@ import Common._
 import Core._
 import Core.Table._
 import Core.Key._
+import Core.{Key, KeyRange}
 import Core.Block._
 
 // Import gRPC libraries
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver
 import com.google.protobuf.ByteString
-
 
 // Import protobuf messages and services
 import message.establishment.{EstablishRequest, EstablishResponse}
@@ -138,26 +138,22 @@ class NetworkClient(
 class ClientImpl extends WorkerServiceGrpc.WorkerService {
 
   override def sampleData(
-    request: SampleRequest,
-    responseObserver: StreamObserver[SampleResponse]
-  ): Unit = {
-    
+      request: SampleRequest,
+      responseObserver: StreamObserver[SampleResponse]): Unit = {
+
     val percentageOfSampling = request.percentageOfSampling
 
     // TODO: Sample Data here
 
     (1 to 10000).foreach { i =>
       val response = SampleResponse(
-        isSamplingSuccessful = true, 
+        isSamplingSuccessful = true,
         // Option[message.common.DataChunk]
-        sample=Some(
-            DataChunk(
-                data = ByteString.copyFrom(java.nio.ByteBuffer.allocate(4).putInt(i).array()),
-                chunkIndex = i,
-                isEOF = (i == 10000)
-            )
-        )
-      )
+        sample = Some(
+          DataChunk(
+            data = ByteString.copyFrom(java.nio.ByteBuffer.allocate(4).putInt(i).array()),
+            chunkIndex = i,
+            isEOF = (i == 10000))))
       responseObserver.onNext(response)
     }
     responseObserver.onCompleted()

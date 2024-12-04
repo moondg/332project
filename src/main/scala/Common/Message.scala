@@ -2,6 +2,7 @@ package Common
 
 import Network.Network.{IPAddr, Port}
 import Core.Key._
+import Core.KeyRange
 
 sealed trait MessageType
 
@@ -21,7 +22,7 @@ case object MergeRequest extends MessageType
 case object MergeResponse extends MessageType
 
 class WorkerStatus(val ip: IPAddr, val port: Port) {
-  var keyRange: (Key, Key) = null
+  var keyRange: KeyRange = null
   var state: WorkerState = WorkerInitial
 }
 
