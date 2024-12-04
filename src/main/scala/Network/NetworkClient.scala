@@ -166,7 +166,7 @@ class NetworkClient(
         val dividedTree = tree.grouped(divideLength)
         val first = findingMinValueIndex(dividedTree.next())
         val second = findingMinValueIndex(dividedTree.next()) + divideLength
-        if (tree(first)._1.key.compare(tree(second)._1.key) > 0) first
+        if (tree(first)._1.key.compare(tree(second)._1.key) < 0) first
         else second
       }
     }
