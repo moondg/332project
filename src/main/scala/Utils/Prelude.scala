@@ -37,4 +37,15 @@ object Prelude {
   def parseInputDirs(args: List[String]): List[String] = {
     (args takeWhile (_ != "-O")) drop 3
   }
+  def getFiles(dir: String): List[String] = {
+    import java.nio.file.{Paths, Files}
+    import scala.jdk.CollectionConverters._
+    Files
+      .list(Paths.get(dir))
+      .iterator()
+      .asScala
+      .filter(Files.isRegularFile(_))
+      .toList
+      .map(path => path.getFileName.toString)
+  }
 }
