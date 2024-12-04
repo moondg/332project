@@ -21,11 +21,6 @@ case object ShuffleExchangeResponse extends MessageType
 case object MergeRequest extends MessageType
 case object MergeResponse extends MessageType
 
-class WorkerStatus(val ip: IPAddr, val port: Port) {
-  var keyRange: KeyRange = null
-  var state: WorkerState = WorkerInitial
-}
-
 class Message(
     val msgType: MessageType,
     val msg: String,

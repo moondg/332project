@@ -1,5 +1,6 @@
 import Network.NetworkServer
 import scala.concurrent.ExecutionContext
+import Core.Table._
 
 object Master {
   def main(args: Array[String]): Unit = {
@@ -23,7 +24,17 @@ object Master {
 
       println("All workers connected")
       networkServer.createChannels()
+      
+      // Sampling Phase
       networkServer.requestSampling()
+      val samples = networkServer.sample
+      
+      // Partitioning Phase
+      // TODO: Create a KeyRangeTable here
+      val keyRangeTable: Table = null
+      networkServer.requestPartitioning(keyRangeTable)
+
+      
 
     } catch {
       case except: Exception => println(except)

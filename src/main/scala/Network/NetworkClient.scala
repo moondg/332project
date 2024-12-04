@@ -160,8 +160,28 @@ class ClientImpl extends WorkerServiceGrpc.WorkerService {
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
-    val keyRangeTable = request.table
+    request.table match {
+      case Some(keyRangeTableProto) =>
+        val keyRangeTable = keyRangeTableProto.rows.map { keyRangeProto =>
+          val start = new Key(
+            keyRangeProto.range match {
+              case Some(range) => range.start.toByteArray
+              case None => Array[Byte]()
+            }
+          )
+          
+          val end = new Key(
+            keyRangeProto.range match {
+              case Some(range) => range.end.toByteArray
+              case None => Array[Byte]()
+            }
+          )
 
+          val node = (keyRangeProto.ip, keyRangeProto.port)
+          (new Core.KeyRange(start=start, end=end), node)
+        }
+     
+    }
     // TODO: Perform Partitioning here
     val response = PartitionResponse(isPartitioningSuccessful = true)
     Future.successful(response)

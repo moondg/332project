@@ -27,6 +27,7 @@ import Core.Block._
 // Import gRPC libraries
 import io.grpc.{Server, ManagedChannel, ManagedChannelBuilder, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver
+import com.google.protobuf.ByteString
 
 // Import protobuf messages and services
 import message.establishment.{EstablishRequest, EstablishResponse}
@@ -50,7 +51,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   var server: Server = null
   var state: MasterState = MasterInitial
-  var clients: ListBuffer[WorkerStatus] = ListBuffer.empty
+  var clients: ListBuffer[Node] = ListBuffer.empty
   var sample: List[Key] = List.empty[Key]
 
   var channels: Seq[ManagedChannel] = null
@@ -74,7 +75,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   def createChannels(): Unit = {
     channels = clients.map { client =>
       ManagedChannelBuilder
-        .forAddress(client.ip, client.port)
+        .forAddress(client._1, client._2)
         .usePlaintext()
         .build()
     }.toSeq
@@ -89,7 +90,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     val responses: Seq[Future[List[Key]]] = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
         val request =
-          SampleRequest(workerIp = client.ip, workerPort = client.port, percentageOfSampling = 1)
+          SampleRequest(workerIp = client._1, workerPort = client._2, percentageOfSampling = 1)
 
         val promise = Promise[List[Key]]()
         val buffer = ListBuffer.empty[Key]
@@ -135,7 +136,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
 
     try {
-      val allResponses = Await.result(Future.sequence(responses), 10.seconds)
+      val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
       sample = allResponses.flatten.toList
       println(s"Number of samples: ${sample.length}")
       
@@ -143,6 +144,55 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       case e: Exception => {
         state = MasterReceivedSampleResponseFailure
         println(s"Failed to receive sample data: ${e.getMessage}")
+      }
+    }
+  }
+
+  def requestPartitioning(keyRangeTable: Table): Unit = {
+    val keyRangeTableProto = KeyRangeTable(
+      keyRangeTable.map {
+        case (keyRange, node) =>
+          KeyRangeTableRow(
+            ip = node._1,
+            port = node._2,
+            range = Some(
+              message.common.KeyRange(
+                start = ByteString.copyFrom(keyRange.start.key),
+                end = ByteString.copyFrom(keyRange.end.key)
+              )
+            )
+          )
+      }
+    )
+
+    val responses = clients.zip(stubs).toSeq.map {
+      case (client, stub) => {
+        val request = PartitionRequest(table = Option(keyRangeTableProto))
+
+        val promise = Promise[Unit]()
+
+        stub.partitionData(request).onComplete {
+          case Success(response) => {
+            if (response.isPartitioningSuccessful) {
+              promise.success(())
+            } else {
+              promise.failure(new Exception("Partitioning failed"))
+            }
+          }
+          case Failure(e) => promise.failure(e)
+        }
+
+        promise.future
+      }
+    }
+
+    try {
+      Await.result(Future.sequence(responses), Duration.Inf)
+      state = MasterReceivedPartitionResponse
+    } catch {
+      case e: Exception => {
+        state = MasterReceivedPartitionResponseFailure
+        println(s"Failed to receive partition data: ${e.getMessage}")
       }
     }
   }
@@ -179,7 +229,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   def divideKeyRange(): List[KeyRange] = {
     val samplePerWorker: Int = sample.length / numberOfWorkers
     val groupedSample = sample.sorted.grouped(samplePerWorker).toList
-    def acc(rawRanges: List[Array[Key]], start: Key): List[KeyRange] = {
+    def acc(rawRanges: List[List[Key]], start: Key): List[KeyRange] = {
       rawRanges match {
         case Nil => List()
         case a :: Nil => List(new KeyRange(start, Key.max))
@@ -190,18 +240,18 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 }
 
-class ServerImpl(clients: ListBuffer[WorkerStatus])
+class ServerImpl(clients: ListBuffer[Node])
     extends MasterServiceGrpc.MasterService
     with Logging {
 
   override def establishConnection(request: EstablishRequest): Future[EstablishResponse] = {
 
-    val workerStatus = new WorkerStatus(request.workerIp, request.workerPort)
+    val node = new Node(request.workerIp, request.workerPort)
 
     // logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
     println(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
     clients.synchronized {
-      clients += workerStatus
+      clients += node
     }
 
     val response = EstablishResponse(isEstablishmentSuccessful = true)
