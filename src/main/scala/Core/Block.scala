@@ -18,6 +18,7 @@ object Block {
 }
 
 class Block(val block: List[Record]) {
+  def size: Int = block.length
   def sampling(size: Int): List[Key] = {
     (block take size).map(_.key)
   }

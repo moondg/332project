@@ -6,4 +6,8 @@ object Constant {
     def value: Int = 90
     def record: Int = 100
   }
+  object Sample {
+    def ratio: Int = 1
+    def number: Int = 1024
+  }
 }
