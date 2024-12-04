@@ -48,4 +48,10 @@ object Prelude {
       .toList
       .map(path => path.getFileName.toString)
   }
+  def getAllFiles(inputDirs: List[String]): List[String] = {
+    for {
+      dir <- inputDirs
+      file <- getFiles(dir)
+    } yield dir ++ "/" ++ file
+  }
 }
