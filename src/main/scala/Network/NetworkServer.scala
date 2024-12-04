@@ -86,12 +86,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   def requestSampling(): Unit = {
 
     // Perform this to each worker
-    val responses: Seq[Future[List[Byte]]] = clients.zip(stubs).toSeq.map {
+    val responses: Seq[Future[Array[Byte]]] = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
         val request =
           SampleRequest(workerIp = client.ip, workerPort = client.port, percentageOfSampling = 1)
 
-        val promise = Promise[List[Byte]]()
+        val promise = Promise[Array[Byte]]()
         val buffer = ListBuffer.empty[Byte]
         var haveReachedEOF = false
 
@@ -114,14 +114,14 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
           override def onCompleted(): Unit = {
             if (haveReachedEOF) {
-              promise.success(buffer.toList)
+              promise.success(buffer.toArray)
             } else {
               promise.failure(new Exception("Did not receive EOF"))
             }
           }
 
           // Concurrently run the sampleData request
-          def receivedResponse: Future[List[Byte]] = promise.future
+          def receivedResponse: Future[Array[Byte]] = promise.future
         }
 
         // Request sample data for current worker
