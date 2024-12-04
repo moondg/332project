@@ -160,7 +160,10 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
         isSamplingSuccessful = true,
         // Option[message.common.DataChunk]
         sample = Some(
-          DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = i, isEOF = (i == length))))
+          DataChunk(
+            data = ByteString.copyFrom(key.key),
+            chunkIndex = i,
+            isEOF = (i + 1 == length))))
       responseObserver.onNext(response)
     }
     responseObserver.onCompleted()
