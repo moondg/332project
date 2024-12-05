@@ -166,25 +166,24 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
 
     val promise = Promise[PartitionResponse]
     val concurrentSave = Future {
-      val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
-      partitionss.zip(fileNames).map { case (partitions, fileName) =>
-        partitions.map { case (partition, node) =>
-          val outputFileName = outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
-          val writer = new PrintWriter(outputFileName)
-          partition.foreach(record => writer.println(record.key.key :+ record.value))
-          writer.close()
+      try {
+        val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
+        partitionss.zip(fileNames).map { case (partitions, fileName) =>
+          partitions.map { case (partition, node) =>
+            val outputFileName =
+              outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
+            val writer = new PrintWriter(outputFileName)
+            partition.foreach(record => writer.println(record.key.key :+ record.value))
+            writer.close()
+          }
+        }
+        promise.success(PartitionResponse(isPartitioningSuccessful = true))
+      } catch {
+        case exception: Exception => {
+          promise.failure(exception)
         }
       }
-    }.onComplete({
-      case Success(value) => {
-        val response = PartitionResponse(isPartitioningSuccessful = true)
-        Future.successful(response)
-      }
-      case Failure(exception) => {
-        val response = PartitionResponse(isPartitioningSuccessful = false)
-        Future.failed(exception)
-      }
-    })
+    }
 
     promise.future
   }
