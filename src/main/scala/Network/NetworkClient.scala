@@ -172,8 +172,10 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
         partitionss.zip(fileNames).map { case (partitions, fileName) =>
           partitions.map { case (partition, node) =>
+            println(s"Write start: ${node._1}:${node._2}")
             val filePath = outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
             writeFile(filePath, partition)
+            println(s"Write end: ${node._1}:${node._2}")
           }
         }
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
@@ -183,7 +185,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         }
       }
     }
-
+    println("Partition Done")
     promise.future
   }
 

@@ -108,9 +108,9 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
                   buffer += new Key(datachunk.data.toByteArray)
                 }
 
-                // convert data to hex and print
-                println(
-                  s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
+              // convert data to hex and print
+              // println(
+              //   s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
               case None =>
                 onError(new Exception("Received empty data chunk"))
             }
