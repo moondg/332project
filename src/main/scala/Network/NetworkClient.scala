@@ -189,6 +189,7 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
         }
 
     }
+    println(keyRangeTable)
     // TODO: Perform Partitioning here
     val response = PartitionResponse(isPartitioningSuccessful = true)
     Future.successful(response)
