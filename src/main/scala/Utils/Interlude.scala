@@ -18,12 +18,12 @@ object Interlude {
     }
   }
   def readFile(filePath: String): Array[Byte] = {
-    import java.io.{BufferedInputStream, FileInputStream}
-    val inputStream = new BufferedInputStream(new FileInputStream(filePath))
+    import scala.io.Source
+    val source = Source.fromFile(filePath, "ISO8859-1")
     try {
-      inputStream.readAllBytes()
+      source.map(_.toByte).toArray
     } finally {
-      inputStream.close()
+      source.close()
     }
   }
   def writeFile(filePath: String, data: List[Record]): Unit = {
