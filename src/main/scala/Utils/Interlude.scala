@@ -27,7 +27,13 @@ object Interlude {
     }
   }
   def writeFile(filePath: String, data: List[Record]): Unit = {
-    writeFile(filePath, data.flatMap(_.raw).toArray)
+    import java.io.{BufferedOutputStream, FileOutputStream}
+    val outputStream = new BufferedOutputStream(new FileOutputStream(filePath))
+    try {
+      data.foreach(record => outputStream.write(record.raw))
+    } finally {
+      outputStream.close()
+    }
   }
   def writeFile(filePath: String, data: Array[Byte]): Unit = {
     import java.io.{BufferedOutputStream, FileOutputStream}
