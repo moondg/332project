@@ -9,7 +9,7 @@ object Master {
 
     require(args.length == 1 || args.length == 2, argsFormat)
     val numberOfWorkers = args(0).toInt
-    val port = if (args.length == 1) 50051 else args(1).toInt
+    val port = if (args.length == 1) 50075 else args(1).toInt
 
     // Run NetworkServer
     val networkServer =
@@ -26,14 +26,17 @@ object Master {
       networkServer.createChannels()
 
       // Sampling Phase
+      println("Sampling Phase")
       networkServer.requestSampling()
       val samples = networkServer.sample
 
       // Partitioning Phase
+      println("Partitioning Phase")
       val table: Table = networkServer
         .divideKeyRange()
         .zip(networkServer.clients)
         .toList
+      println("Sending partitioning request")
       networkServer.requestPartitioning(table)
 
     } catch {

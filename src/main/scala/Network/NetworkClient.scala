@@ -170,6 +170,7 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
+    println("[Worker] Partitioning request received")
     request.table match {
       case Some(keyRangeTableProto) =>
         val keyRangeTable = keyRangeTableProto.rows.map { keyRangeProto =>
