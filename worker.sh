@@ -13,7 +13,6 @@ fi
 if [[ $1 =~ small$ || $1 =~ big$ || $1 =~ large$ ]]; then
     rm ~/output/$1/*
     sbt "run $2 -I /home/dataset/$1 -O /home/red/output/$1"
-    3 # specific argument for our project
 else
     echo "Available options: small/big/large"
     exit 1

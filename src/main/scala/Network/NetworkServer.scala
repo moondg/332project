@@ -139,12 +139,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     try {
       val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
       sample = allResponses.flatten.toList
-      println(s"Number of samples: ${sample.length}")
+      logger.info(s"Number of samples: ${sample.length}")
 
     } catch {
       case e: Exception => {
         state = MasterReceivedSampleResponseFailure
-        println(s"Failed to receive sample data: ${e.getMessage}")
+        logger.error(s"Failed to receive sample data: ${e.getMessage}")
       }
     }
   }
@@ -187,7 +187,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     } catch {
       case e: Exception => {
         state = MasterReceivedPartitionResponseFailure
-        println(s"Failed to receive partition data: ${e.getMessage}")
+        logger.info(s"Failed to receive partition data: ${e.getMessage}")
       }
     }
   }
@@ -242,7 +242,7 @@ class ServerImpl(clients: ListBuffer[Node]) extends MasterServiceGrpc.MasterServ
     val node = new Node(request.workerIp, request.workerPort)
 
     // logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
-    println(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
+    logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
     clients.synchronized {
       clients += node
     }

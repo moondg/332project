@@ -179,6 +179,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
           writeFile(filePath, partition)
           logger.info(s"Write end: ${node._1}:${node._2}")
         }
+        logger.info("Partition Done")
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
       } catch {
         case exception: Exception => {
@@ -186,7 +187,6 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         }
       }
     }
-    logger.info("Partition Done")
     promise.future
   }
 
