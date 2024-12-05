@@ -144,18 +144,21 @@ class NetworkClient(
 
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
     lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile)
+    val blocksCursor: Array[Int] = Array.fill(blocks.length)(1)
     val file = new File(outputFilePath)
     val fileWriter = new FileOutputStream(file, file.exists())
     var counter: Int = 0
     var emptyBlock: Int = 0
-    val output: Array[Record] = Array.empty[Record]
-    val tournamentTree: Array[(Record, Int)] = Array.empty[(Record, Int)]
+    var output: Array[Record] = Array.empty[Record]
+    val tournamentTree: Array[(Record, Int)] =
+      Array.fill(blocks.length)(new Record(Key.max, Array.empty), -1)
 
     @tailrec
     def treePushInit(cnt: Int): Unit = {
       if (cnt < blocks.length) {
-        tournamentTree.appended(blocks(cnt).block.head, cnt)
-        blocks(cnt).block.drop(1)
+        tournamentTree.update(
+          cnt,
+          (new Record(blocks(cnt).block.head.key, blocks(cnt).block.head.value), cnt))
         treePushInit(cnt + 1)
       }
     }
@@ -175,23 +178,23 @@ class NetworkClient(
       val treeIndex = findingMinValueIndex(tournamentTree)
       val (data, num) = tournamentTree(treeIndex)
       assert(num >= 0)
-      if (blocks(num).block.nonEmpty) {
-        tournamentTree.updated(treeIndex, (blocks(num).block.head, num))
-        blocks(num).block.drop(1)
+      if (blocksCursor(num) <= blocks(num).block.length) {
+        tournamentTree.update(treeIndex, (blocks(num).block(blocksCursor(num)), num))
+        blocksCursor(num) += 1
       } else {
-        tournamentTree.updated(treeIndex, (Key.max, -1))
+        tournamentTree.update(treeIndex, (new Record(Key.max, Array.empty[Byte]), -1))
         emptyBlock += 1
       }
 
       counter += 1
-      output.appended(data)
+      output = output :+ data
       if (counter % 100 == 0 || emptyBlock == blocks.length) {
         for (datum <- output) {
           fileWriter.write(datum.key.key)
           fileWriter.write(datum.value)
           fileWriter.write("\n".getBytes)
         }
-        output.drop(output.length)
+        output = Array.empty[Record]
       }
       if (emptyBlock < blocks.length) {
         merge()
