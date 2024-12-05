@@ -171,9 +171,9 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
     println("[Worker] Partitioning request received")
-    request.table match {
+    val keyRangeTable: Table = request.table match {
       case Some(keyRangeTableProto) =>
-        val keyRangeTable = keyRangeTableProto.rows.map { keyRangeProto =>
+        keyRangeTableProto.rows.map { keyRangeProto =>
           val start = new Key(keyRangeProto.range match {
             case Some(range) => range.start.toByteArray
             case None => Array[Byte]()
@@ -186,8 +186,10 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
 
           val node = (keyRangeProto.ip, keyRangeProto.port)
           (new Core.KeyRange(start = start, end = end), node)
-        }
-
+        }.toList
+      case None =>
+        println("[Worker] No key range table provided")
+        List.empty
     }
     println(keyRangeTable)
     // TODO: Perform Partitioning here
