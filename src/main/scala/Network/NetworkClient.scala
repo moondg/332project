@@ -162,7 +162,9 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         println("[Worker] No key range table provided")
         List.empty
     }
-    println(keyRangeTable)
+    keyRangeTable.foreach { case (keyRange, node) =>
+      println(s"${keyRange.hex} ${node._1}:${node._2}")
+    }
 
     val promise = Promise[PartitionResponse]
     val concurrentSave = Future {
@@ -170,11 +172,8 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
         partitionss.zip(fileNames).map { case (partitions, fileName) =>
           partitions.map { case (partition, node) =>
-            val outputFileName =
-              outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
-            val writer = new PrintWriter(outputFileName)
-            partition.foreach(record => writer.println(record.key.key :+ record.value))
-            writer.close()
+            val filePath = outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
+            writeFile(filePath, partition)
           }
         }
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
