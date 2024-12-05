@@ -13,6 +13,7 @@ import scala.annotation.tailrec
 // Import necessary java libraries
 import java.net.InetAddress
 import java.util.concurrent.TimeUnit
+import java.io.PrintWriter
 
 // Import logging libraries
 import org.apache.logging.log4j.scala.Logging
@@ -25,6 +26,7 @@ import Core.Key._
 import Core.{Key, KeyRange}
 import Core.Block._
 import Utils.Prelude._
+import Utils.Interlude._
 
 // Import gRPC libraries
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
@@ -51,9 +53,6 @@ class NetworkClient(
     extends Logging {
 
   val (ip, port) = client
-  val inputFiles = getAllFiles(inputDirs)
-
-  lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
 
   var clientService: ClientImpl = null
   var server: Server = null
@@ -102,44 +101,17 @@ class NetworkClient(
   def sendSamples(sample: List[Key], node: Node): Unit = {}
   def sendRecords(records: List[Record], node: Node): Unit = {}
 
-  // TODO get SamplingRequest
-  def sampling(size: Int): Unit = {
-    val f = Future { blocks map (_.sampling(size)) }
-
-    f.onComplete({
-      case Success(samples) => samples.map(sendSamples(_, master))
-      case Failure(exception) => exception
-    })
-  }
-
-  // TODO send SampleResponse
-  def partitioning(table: Table): Unit = {
-    blocks.map(block => sendPartition(block.block.sorted, table))
-    // The reason for tailrec inside function, see Tim's answer from
-    // https://stackoverflow.com/questions/4785502/why-wont-the-scala-compiler-apply-tail-call-optimization-unless-a-method-is-fin
-    @tailrec
-    def sendPartition(records: List[Record], table: Table): Unit = {
-      table match {
-        case Nil => ()
-        case head :: next => {
-          val (keyRange, node) = head
-          val (sending, remaining) = records span (keyRange.contains(_))
-          logger.info("[Worker] Partition ${ip} -> ${node.ip} Start")
-          sendRecords(sending, node)
-          logger.info("[Worker] Partition ${ip} -> ${node.ip} Done")
-          sendPartition(remaining, next)
-        }
-      }
-    }
-  }
-
   def send_unmatched_data(): Unit = {}
 
   def wait_until_all_data_received(): Unit = {}
 }
 
-class ClientImpl(val inputDirs: List[String], val OutputDir: String)
+class ClientImpl(val inputDirs: List[String], val outputDir: String)
     extends WorkerServiceGrpc.WorkerService {
+
+  val fileNames = inputDirs.map(getFiles).flatten
+  val inputFiles = getAllFiles(inputDirs)
+  lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
 
   override def sampleData(
       request: SampleRequest,
@@ -150,8 +122,7 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
     val inputFiles = getAllFiles(inputDirs)
     val samples = inputFiles
       .map(makeBlockFromFile(_))
-      .map(block => block.block take (block.size * percentageOfSampling / 100.0).ceil.toInt)
-      .map(records => records.map(_.key))
+      .map(block => block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt))
       .flatten
     val length = samples.length
 
@@ -192,9 +163,30 @@ class ClientImpl(val inputDirs: List[String], val OutputDir: String)
         List.empty
     }
     println(keyRangeTable)
-    // TODO: Perform Partitioning here
-    val response = PartitionResponse(isPartitioningSuccessful = true)
-    Future.successful(response)
+
+    val promise = Promise[PartitionResponse]
+    val concurrentSave = Future {
+      val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
+      partitionss.zip(fileNames).map { case (partitions, fileName) =>
+        partitions.map { case (partition, node) =>
+          val outputFileName = outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
+          val writer = new PrintWriter(outputFileName)
+          partition.foreach(record => writer.println(record.key.key :+ record.value))
+          writer.close()
+        }
+      }
+    }.onComplete({
+      case Success(value) => {
+        val response = PartitionResponse(isPartitioningSuccessful = true)
+        Future.successful(response)
+      }
+      case Failure(exception) => {
+        val response = PartitionResponse(isPartitioningSuccessful = false)
+        Future.failed(exception)
+      }
+    })
+
+    promise.future
   }
 
   override def runShuffle(request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
