@@ -46,6 +46,7 @@ object Prelude {
       .asScala
       .filter(Files.isRegularFile(_))
       .toList
+      .sorted // does not read file name in order in same directory
       .map(path => path.getFileName.toString)
   }
   def getAllFiles(inputDirs: List[String]): List[String] = {
