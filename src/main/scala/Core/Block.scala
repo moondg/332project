@@ -19,6 +19,7 @@ object Block {
 
 class Block(val block: List[Record]) {
   def size: Int = block.length
+  def raw: Array[Byte] = block.flatMap(record => record.raw).toArray
   def sampling(size: Int): List[Key] = {
     (block take size).map(_.key)
   }

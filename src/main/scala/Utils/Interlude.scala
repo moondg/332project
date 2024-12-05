@@ -17,4 +17,25 @@ object Interlude {
       }
     }
   }
+  def readFile(filePath: String): Array[Byte] = {
+    import java.io.{BufferedInputStream, FileInputStream}
+    val inputStream = new BufferedInputStream(new FileInputStream(filePath))
+    try {
+      inputStream.readAllBytes()
+    } finally {
+      inputStream.close()
+    }
+  }
+  def writeFile(filePath: String, data: List[Record]): Unit = {
+    writeFile(filePath, data.flatMap(_.raw).toArray)
+  }
+  def writeFile(filePath: String, data: Array[Byte]): Unit = {
+    import java.io.{BufferedOutputStream, FileOutputStream}
+    val outputStream = new BufferedOutputStream(new FileOutputStream(filePath))
+    try {
+      outputStream.write(data)
+    } finally {
+      outputStream.close()
+    }
+  }
 }

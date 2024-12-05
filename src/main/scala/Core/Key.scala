@@ -29,6 +29,7 @@ object Key {
 
 class Key(val key: Array[Byte]) extends Ordered[Key] {
   def hex: String = key.map("%02x " format _).mkString
+  def raw: Array[Byte] = key
   override def compare(that: Key): Int = {
     this.key.zip(that.key).map { case (l, r) => l.toChar - r.toChar }.find(_ != 0).getOrElse(0)
   }

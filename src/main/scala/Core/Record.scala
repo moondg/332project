@@ -12,5 +12,6 @@ object Record {
 }
 
 class Record(val key: Key, val value: Array[Byte]) extends Ordered[Record] {
+  def raw: Array[Byte] = key.key ++ value
   override def compare(that: Record): Int = this.key `compare` that.key
 }
