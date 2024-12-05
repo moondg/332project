@@ -74,7 +74,7 @@ class NetworkClient(
   }
 
   def connectToServer(): Unit = {
-    println("[Worker] Trying to establish connection to master")
+    logger.info("[Worker] Trying to establish connection to master")
 
     // Create a request to establish connection
     val request = new EstablishRequest(workerIp = ip, workerPort = port)
@@ -86,13 +86,13 @@ class NetworkClient(
       // Wait for the response
       val result = Await.result(response, 1.hour)
       if (result.isEstablishmentSuccessful) {
-        println("[Worker] Connection established")
+        logger.info("[Worker] Connection established")
       } else {
-        println("[Worker] Connection failed")
+        logger.info("[Worker] Connection failed")
       }
 
     } catch {
-      case e: Exception => println(e)
+      case e: Exception => logger.error(e)
     }
   }
 
@@ -107,11 +107,11 @@ class NetworkClient(
 }
 
 class ClientImpl(val inputDirs: List[String], val outputDir: String)
-    extends WorkerServiceGrpc.WorkerService {
+    extends WorkerServiceGrpc.WorkerService
+    with Logging {
 
   val fileNames = inputDirs.map(getFiles).flatten
   val inputFiles = getAllFiles(inputDirs)
-  lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
 
   override def sampleData(
       request: SampleRequest,
@@ -141,7 +141,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
-    println("[Worker] Partitioning request received")
+    logger.info("[Worker] Partitioning request received")
     val keyRangeTable: Table = request.table match {
       case Some(keyRangeTableProto) =>
         keyRangeTableProto.rows.map { keyRangeProto =>
@@ -159,24 +159,25 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
           (new Core.KeyRange(start = start, end = end), node)
         }.toList
       case None =>
-        println("[Worker] No key range table provided")
+        logger.info("[Worker] No key range table provided")
         List.empty
     }
     keyRangeTable.foreach { case (keyRange, node) =>
-      println(s"${keyRange.hex} ${node._1}:${node._2}")
+      logger.info(s"Table: ${keyRange.hex} ${node._1}")
     }
 
     val promise = Promise[PartitionResponse]
-    val concurrentSave = Future {
+    lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
+    Future {
       try {
-        val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
-        partitionss.zip(fileNames).map { case (partitions, fileName) =>
-          partitions.map { case (partition, node) =>
-            println(s"Write start: ${node._1}:${node._2}")
-            val filePath = outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
-            writeFile(filePath, partition)
-            println(s"Write end: ${node._1}:${node._2}")
-          }
+        for {
+          (block, fileName) <- blocks.zip(fileNames)
+          (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
+          val filePath = s"${outputDir}/${fileName}_${node._1}:${node._2}"
+        } yield {
+          logger.info(s"Write start: ${node._1}:${node._2}")
+          writeFile(filePath, partition)
+          logger.info(s"Write end: ${node._1}:${node._2}")
         }
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
       } catch {
@@ -185,7 +186,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         }
       }
     }
-    println("Partition Done")
+    logger.info("Partition Done")
     promise.future
   }
 
