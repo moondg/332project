@@ -108,7 +108,7 @@ class NetworkClient(
   def sendRecords(records: List[Record], node: Node): Unit = {}
 
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
-    lazy val blocks: List[Block] = inputDirs.map(makeBlockFromFile)
+    lazy val blocks: List[Block] = tempFiles.map(makeBlockFromFile)
     val blocksCursor: Array[Int] = Array.fill(blocks.length)(1)
     val file = new File(outputFilePath)
     val fileWriter = new FileOutputStream(file, file.exists())
@@ -157,7 +157,6 @@ class NetworkClient(
         for (datum <- output) {
           fileWriter.write(datum.key.key)
           fileWriter.write(datum.value)
-          fileWriter.write("\n".getBytes)
         }
         output = Array.empty[Record]
       }
