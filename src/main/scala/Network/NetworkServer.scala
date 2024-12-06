@@ -102,15 +102,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
             value.sample match {
               case Some(datachunk) =>
                 haveReachedEOF = datachunk.isEOF
-
                 // Synchronize buffer
-                buffer.synchronized {
-                  buffer += new Key(datachunk.data.toByteArray)
+                if (!haveReachedEOF) {
+                  buffer.synchronized {
+                    buffer += new Key(datachunk.data.toByteArray)
+                  }
                 }
-
-              // convert data to hex and print
-              // println(
-              //   s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
               case None =>
                 onError(new Exception("Received empty data chunk"))
             }
