@@ -14,7 +14,7 @@ service MasterService {
 }
 
 service WorkerService {
-    rpc SampleData (SampleRequest) returns (SampleResponse);
+    rpc SampleData (SampleRequest) returns (stream SampleResponse);
     rpc PartitionData (PartitionRequest) returns (PartitionResponse);
     rpc RunShuffle (ShuffleRunRequest) returns (ShuffleRunResponse);
     rpc ExchangeData (ShuffleExchangeRequest) returns (ShuffleExchangeResponse);

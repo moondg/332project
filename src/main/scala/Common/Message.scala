@@ -1,6 +1,8 @@
 package Common
 
 import Network.Network.{IPAddr, Port}
+import Core.Key._
+import Core.KeyRange
 
 sealed trait MessageType
 
@@ -18,11 +20,6 @@ case object ShuffleExchangeRequest extends MessageType
 case object ShuffleExchangeResponse extends MessageType
 case object MergeRequest extends MessageType
 case object MergeResponse extends MessageType
-
-class WorkerStatus(val ip: IPAddr, val port: Port) {
-  var keyRange: (String, String) = null
-  var state: WorkerState = WorkerInitial
-}
 
 class Message(
     val msgType: MessageType,
