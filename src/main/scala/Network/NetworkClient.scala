@@ -110,22 +110,21 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
     extends WorkerServiceGrpc.WorkerService
     with Logging {
 
-  val fileNames = inputDirs.map(getFiles).flatten
-  val inputFiles = getAllFiles(inputDirs)
+  val fileNames = inputDirs.map(getFileNames).flatten
+  val filePaths = getAllFilePaths(inputDirs)
 
   override def sampleData(
       request: SampleRequest,
       responseObserver: StreamObserver[SampleResponse]): Unit = {
 
     val percentageOfSampling = request.percentageOfSampling
-    val inputFiles = getAllFiles(inputDirs)
 
     var length = 0
-    lazy val blocks = inputFiles.map(makeBlockFromFile(_))
 
     logger.info("[Worker] Start sending samples")
     for {
-      block <- blocks
+      filePath <- filePaths
+      val block = makeBlockFromFile(filePath)
       key <- block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt)
     } yield {
       val dataChunk =
@@ -171,7 +170,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
     }
 
     val promise = Promise[PartitionResponse]
-    lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
+    lazy val blocks: List[Block] = filePaths.map(makeBlockFromFile(_))
     Future {
       try {
         for {
