@@ -7,10 +7,11 @@ import Utils.Interlude.readFile
 
 object Block {
   def makeBlockFromFile(filePath: String): Block = {
-    new Block(for {
-      forType <- List()
-      arr <- readFile(filePath).grouped(Core.Constant.Size.record)
-    } yield convertFrom(arr))
+    new Block(
+      readFile(filePath)
+        .grouped(Constant.Size.record)
+        .map(arr => convertFrom(arr))
+        .toList)
   }
 }
 
