@@ -108,15 +108,15 @@ class NetworkClient(
   def sendRecords(records: List[Record], node: Node): Unit = {}
 
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
-    lazy val blocks: List[Block] = tempFiles.map(makeBlockFromFile)
+    lazy val blocks: Array[Block] = tempFiles.map(makeBlockFromFile).toArray
     val blocksCursor: Array[Int] = Array.fill(blocks.length)(1)
-    val file = new File(outputFilePath)
-    val fileWriter = new FileOutputStream(file, file.exists())
     var counter: Int = 0
     var emptyBlock: Int = 0
-    var output: Array[Record] = Array.empty[Record]
     val tournamentTree: Array[(Record, Int)] =
       Array.fill(blocks.length)(new Record(Key.max, Array.empty), -1)
+
+    val file = new File(outputFilePath)
+    val fileWriter = new FileOutputStream(file, file.exists())
 
     @tailrec
     def treePushInit(cnt: Int): Unit = {
@@ -150,16 +150,9 @@ class NetworkClient(
         tournamentTree.update(treeIndex, (new Record(Key.max, Array.empty[Byte]), -1))
         emptyBlock += 1
       }
-
+      fileWriter.write(data.key.key)
+      fileWriter.write(data.value)
       counter += 1
-      output = output :+ data
-      if (counter % 100 == 0 || emptyBlock == blocks.length) {
-        for (datum <- output) {
-          fileWriter.write(datum.key.key)
-          fileWriter.write(datum.value)
-        }
-        output = Array.empty[Record]
-      }
       if (emptyBlock < blocks.length) {
         merge()
       }
@@ -167,7 +160,9 @@ class NetworkClient(
 
     treePushInit(0)
     merge()
+
     fileWriter.close()
+
     counter
   }
   def send_unmatched_data(): Unit = {}
