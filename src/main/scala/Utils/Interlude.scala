@@ -12,8 +12,13 @@ object Interlude {
     table match {
       case Nil => List()
       case (keyRange, node) :: next => {
-        val (sending, remaining) = records span (keyRange.contains)
-        (sending, node) :: dividePartition(remaining, next)
+        keyRange.end == Key.max match {
+          case true => List((records, node))
+          case false => {
+            val (sending, remaining) = records span (keyRange.contains)
+            (sending, node) :: dividePartition(remaining, next)
+          }
+        }
       }
     }
   }

@@ -179,9 +179,9 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
           (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
           val filePath = s"${outputDir}/${fileName}_${node._1}:${node._2}"
         } yield {
-          logger.info(s"Write start: ${node._1}:${node._2}")
+          logger.info(s"Write start: ${fileName}${node._1}:${node._2}")
           writeFile(filePath, partition)
-          logger.info(s"Write end: ${node._1}:${node._2}")
+          logger.info(s"Write end:   ${fileName}${node._1}:${node._2}")
         }
         logger.info("Partition Done")
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
