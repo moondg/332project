@@ -174,13 +174,14 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
     Future {
       try {
         for {
-          (block, fileName) <- blocks.zip(fileNames)
+          (filePath, fileName) <- filePaths zip fileNames
+          val block = makeBlockFromFile(filePath)
           (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
-          val filePath = s"${outputDir}/${fileName}_${node._1}:${node._2}"
+          val outFilePath = s"${outputDir}/${node._1}:${node._2}_${filePath.hashCode()}_${fileName}"
         } yield {
-          logger.info(s"Write start: ${fileName}${node._1}:${node._2}")
-          writeFile(filePath, partition)
-          logger.info(s"Write end:   ${fileName}${node._1}:${node._2}")
+          logger.info(s"Write start: ${fileName} ${node._1}:${node._2}")
+          writeFile(outFilePath, partition)
+          logger.info(s"Write end:   ${fileName} ${node._1}:${node._2}")
         }
         logger.info("Partition Done")
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
