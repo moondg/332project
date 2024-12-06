@@ -118,26 +118,30 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
       responseObserver: StreamObserver[SampleResponse]): Unit = {
 
     val percentageOfSampling = request.percentageOfSampling
-
     val inputFiles = getAllFiles(inputDirs)
-    val samples = inputFiles
-      .map(makeBlockFromFile(_))
-      .map(block => block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt))
-      .flatten
-    val length = samples.length
 
-    samples.zipWithIndex.foreach { case (key, i) =>
-      val response = SampleResponse(
-        isSamplingSuccessful = true,
-        // Option[message.common.DataChunk]
-        sample = Some(
-          DataChunk(
-            data = ByteString.copyFrom(key.key),
-            chunkIndex = i,
-            isEOF = (i + 1 == length))))
+    var length = 0
+    lazy val blocks = inputFiles.map(makeBlockFromFile(_))
+
+    logger.info("[Worker] Start sending samples")
+    for {
+      block <- blocks
+      key <- block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt)
+    } yield {
+      val dataChunk =
+        DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = length, isEOF = false)
+      val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
       responseObserver.onNext(response)
+      length = length + 1
     }
+
+    val emptyResponse = SampleResponse(
+      isSamplingSuccessful = true,
+      sample = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = length, isEOF = true)))
+    responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
+
+    logger.info("[Worker] End sending samples")
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {

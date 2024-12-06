@@ -3,17 +3,14 @@ package Core
 import Key._
 import Record._
 import scala.io.Source
+import Utils.Interlude.readFile
 
 object Block {
-  def makeBlockFromFile(fileName: String): Block = {
-    new Block(
-      Source
-        .fromFile(fileName, "ISO8859-1")
-        .map(_.toByte)
-        .toArray
-        .grouped(Core.Constant.Size.record)
-        .map(byteArr => convertFrom(byteArr))
-        .toList)
+  def makeBlockFromFile(filePath: String): Block = {
+    new Block(for {
+      forType <- List()
+      arr <- readFile(filePath).grouped(Core.Constant.Size.record)
+    } yield convertFrom(arr))
   }
 }
 
