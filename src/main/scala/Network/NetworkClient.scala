@@ -80,7 +80,7 @@ class NetworkClient(
   }
 
   def connectToServer(): Unit = {
-    println("[Worker] Trying to establish connection to master")
+    logger.info("[Worker] Trying to establish connection to master")
 
     // Create a request to establish connection
     val request = new EstablishRequest(workerIp = ip, workerPort = port)
@@ -92,13 +92,13 @@ class NetworkClient(
       // Wait for the response
       val result = Await.result(response, 1.hour)
       if (result.isEstablishmentSuccessful) {
-        println("[Worker] Connection established")
+        logger.info("[Worker] Connection established")
       } else {
-        println("[Worker] Connection failed")
+        logger.info("[Worker] Connection failed")
       }
 
     } catch {
-      case e: Exception => println(e)
+      case e: Exception => logger.error(e)
     }
   }
 
@@ -171,11 +171,11 @@ class NetworkClient(
 }
 
 class ClientImpl(val inputDirs: List[String], val outputDir: String)
-    extends WorkerServiceGrpc.WorkerService {
+    extends WorkerServiceGrpc.WorkerService
+    with Logging {
 
-  val fileNames = inputDirs.map(getFiles).flatten
-  val inputFiles = getAllFiles(inputDirs)
-  lazy val blocks: List[Block] = inputFiles.map(makeBlockFromFile(_))
+  val fileNames = inputDirs.map(getFileNames).flatten
+  val filePaths = getAllFilePaths(inputDirs)
 
   override def sampleData(
       request: SampleRequest,
@@ -183,29 +183,32 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
 
     val percentageOfSampling = request.percentageOfSampling
 
-    val inputFiles = getAllFiles(inputDirs)
-    val samples = inputFiles
-      .map(makeBlockFromFile(_))
-      .map(block => block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt))
-      .flatten
-    val length = samples.length
+    var length = 0
 
-    samples.zipWithIndex.foreach { case (key, i) =>
-      val response = SampleResponse(
-        isSamplingSuccessful = true,
-        // Option[message.common.DataChunk]
-        sample = Some(
-          DataChunk(
-            data = ByteString.copyFrom(key.key),
-            chunkIndex = i,
-            isEOF = (i + 1 == length))))
+    logger.info("[Worker] Start sending samples")
+    for {
+      filePath <- filePaths
+      val block = makeBlockFromFile(filePath)
+      key <- block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt)
+    } yield {
+      val dataChunk =
+        DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = length, isEOF = false)
+      val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
       responseObserver.onNext(response)
+      length = length + 1
     }
+
+    val emptyResponse = SampleResponse(
+      isSamplingSuccessful = true,
+      sample = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = length, isEOF = true)))
+    responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
+
+    logger.info("[Worker] End sending samples")
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
-    println("[Worker] Partitioning request received")
+    logger.info("[Worker] Partitioning request received")
     val keyRangeTable: Table = request.table match {
       case Some(keyRangeTableProto) =>
         keyRangeTableProto.rows.map { keyRangeProto =>
@@ -223,23 +226,28 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
           (new Core.KeyRange(start = start, end = end), node)
         }.toList
       case None =>
-        println("[Worker] No key range table provided")
+        logger.info("[Worker] No key range table provided")
         List.empty
     }
     keyRangeTable.foreach { case (keyRange, node) =>
-      println(s"${keyRange.hex} ${node._1}:${node._2}")
+      logger.info(s"Table: ${keyRange.hex} ${node._1}")
     }
 
     val promise = Promise[PartitionResponse]
-    val concurrentSave = Future {
+    lazy val blocks: List[Block] = filePaths.map(makeBlockFromFile(_))
+    Future {
       try {
-        val partitionss = blocks.map(block => dividePartition(block.block.sorted, keyRangeTable))
-        partitionss.zip(fileNames).map { case (partitions, fileName) =>
-          partitions.map { case (partition, node) =>
-            val filePath = outputDir ++ fileName ++ " " ++ node._1 ++ " " ++ node._2.toString
-            writeFile(filePath, partition)
-          }
+        for {
+          (filePath, fileName) <- filePaths zip fileNames
+          val block = makeBlockFromFile(filePath)
+          (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
+          val outFilePath = s"${outputDir}/${node._1}:${node._2}_${filePath.hashCode()}_${fileName}"
+        } yield {
+          logger.info(s"Write start: ${fileName} ${node._1}:${node._2}")
+          writeFile(outFilePath, partition)
+          logger.info(s"Write end:   ${fileName} ${node._1}:${node._2}")
         }
+        logger.info("Partition Done")
         promise.success(PartitionResponse(isPartitioningSuccessful = true))
       } catch {
         case exception: Exception => {
@@ -247,7 +255,6 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         }
       }
     }
-
     promise.future
   }
 

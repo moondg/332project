@@ -1,8 +1,9 @@
 import Network.NetworkServer
 import scala.concurrent.ExecutionContext
 import Core.Table._
+import org.apache.logging.log4j.scala.Logging
 
-object Master {
+object Master extends Logging {
   def main(args: Array[String]): Unit = {
     // Parse Arguments
     val argsFormat = "master [number of workers] [master network port (not essential)]"
@@ -18,29 +19,24 @@ object Master {
     try {
       networkServer.start()
 
-      println("Waiting for workers to connect")
+      logger.info("[Master] Waiting for workers to connect")
       // Block until networkServer.clientList's length is equal to numberOfWorkers
       while (networkServer.clients.length < numberOfWorkers) { Thread.sleep(1000) }
 
-      println("All workers connected")
+      logger.info("[Master] All workers connected")
       networkServer.createChannels()
 
       // Sampling Phase
-      println("Sampling Phase")
+      logger.info("[Master] Sampling Phase")
       networkServer.requestSampling()
-      val samples = networkServer.sample
 
       // Partitioning Phase
-      println("Partitioning Phase")
-      val table: Table = networkServer
-        .divideKeyRange()
-        .zip(networkServer.clients)
-        .toList
-      println("Sending partitioning request")
-      networkServer.requestPartitioning(table)
+      logger.info("[Master] Partitioning Phase")
+      logger.info("[Master] Sending partitioning request")
+      networkServer.requestPartitioning()
 
     } catch {
-      case except: Exception => println(except)
+      case except: Exception => logger.error(except)
     } finally {
       networkServer.stop()
     }

@@ -102,15 +102,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
             value.sample match {
               case Some(datachunk) =>
                 haveReachedEOF = datachunk.isEOF
-
                 // Synchronize buffer
-                buffer.synchronized {
-                  buffer += new Key(datachunk.data.toByteArray)
+                if (!haveReachedEOF) {
+                  buffer.synchronized {
+                    buffer += new Key(datachunk.data.toByteArray)
+                  }
                 }
-
-                // convert data to hex and print
-                println(
-                  s"Received data chunk: ${datachunk.data.toByteArray.map("%02x".format(_)).mkString}")
               case None =>
                 onError(new Exception("Received empty data chunk"))
             }
@@ -139,33 +136,38 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     try {
       val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
       sample = allResponses.flatten.toList
-      println(s"Number of samples: ${sample.length}")
+      logger.info(s"Number of samples: ${sample.length}")
 
     } catch {
       case e: Exception => {
         state = MasterReceivedSampleResponseFailure
-        println(s"Failed to receive sample data: ${e.getMessage}")
+        logger.error(s"Failed to receive sample data: ${e.getMessage}")
       }
     }
   }
 
-  def requestPartitioning(keyRangeTable: Table): Unit = {
-    val keyRangeTableProto = KeyRangeTable(keyRangeTable.map { case (keyRange, node) =>
-      KeyRangeTableRow(
-        ip = node._1,
-        port = node._2,
-        range = Some(
-          message.common.KeyRange(
-            start = ByteString.copyFrom(keyRange.start.key),
-            end = ByteString.copyFrom(keyRange.end.key))))
-    })
+  def createTable(): Table = {
+    divideKeyRange().zip(clients).toList
+  }
+
+  def requestPartitioning(): Unit = {
+    val table = createTable()
+    lazy val tableProto: KeyRangeTable = {
+      val rows = for {
+        (keyRange, node) <- table
+        val (ip, port) = node
+        val start = ByteString.copyFrom(keyRange.start.key)
+        val end = ByteString.copyFrom(keyRange.end.key)
+        val range = Some(message.common.KeyRange(start, end))
+      } yield KeyRangeTableRow(ip, port, range)
+      KeyRangeTable(rows)
+    }
 
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
-        val request = PartitionRequest(table = Option(keyRangeTableProto))
-
         val promise = Promise[Unit]()
 
+        val request = PartitionRequest(table = Option(tableProto))
         stub.partitionData(request).onComplete {
           case Success(response) => {
             if (response.isPartitioningSuccessful) {
@@ -187,7 +189,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     } catch {
       case e: Exception => {
         state = MasterReceivedPartitionResponseFailure
-        println(s"Failed to receive partition data: ${e.getMessage}")
+        logger.info(s"Failed to receive partition data: ${e.getMessage}")
       }
     }
   }
@@ -242,7 +244,7 @@ class ServerImpl(clients: ListBuffer[Node]) extends MasterServiceGrpc.MasterServ
     val node = new Node(request.workerIp, request.workerPort)
 
     // logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
-    println(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
+    logger.info(s"[Master] Worker ${request.workerIp}:${request.workerPort} connected")
     clients.synchronized {
       clients += node
     }

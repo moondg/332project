@@ -37,7 +37,7 @@ object Prelude {
   def parseInputDirs(args: List[String]): List[String] = {
     (args takeWhile (_ != "-O")) drop 3
   }
-  def getFiles(dir: String): List[String] = {
+  def getFileNames(dir: String): List[String] = {
     import java.nio.file.{Paths, Files}
     import scala.jdk.CollectionConverters._
     Files
@@ -46,13 +46,13 @@ object Prelude {
       .asScala
       .filter(Files.isRegularFile(_))
       .toList
-      .sorted // does not read file name in order in same directory
       .map(path => path.getFileName.toString)
+      .sorted // does not read file name in order in same directory
   }
-  def getAllFiles(inputDirs: List[String]): List[String] = {
+  def getAllFilePaths(inputDirs: List[String]): List[String] = {
     for {
       dir <- inputDirs
-      file <- getFiles(dir)
-    } yield dir ++ "/" ++ file
+      fileName <- getFileNames(dir)
+    } yield java.nio.file.Paths.get(dir).toString ++ "/" ++ fileName
   }
 }
