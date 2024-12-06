@@ -146,23 +146,28 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
   }
 
-  def requestPartitioning(keyRangeTable: Table): Unit = {
-    val keyRangeTableProto = KeyRangeTable(keyRangeTable.map { case (keyRange, node) =>
-      KeyRangeTableRow(
-        ip = node._1,
-        port = node._2,
-        range = Some(
-          message.common.KeyRange(
-            start = ByteString.copyFrom(keyRange.start.key),
-            end = ByteString.copyFrom(keyRange.end.key))))
-    })
+  def createTable(): Table = {
+    divideKeyRange().zip(clients).toList
+  }
+
+  def requestPartitioning(): Unit = {
+    val table = createTable()
+    lazy val tableProto: KeyRangeTable = {
+      val rows = for {
+        (keyRange, node) <- table
+        val (ip, port) = node
+        val start = ByteString.copyFrom(keyRange.start.key)
+        val end = ByteString.copyFrom(keyRange.end.key)
+        val range = Some(message.common.KeyRange(start, end))
+      } yield KeyRangeTableRow(ip, port, range)
+      KeyRangeTable(rows)
+    }
 
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
-        val request = PartitionRequest(table = Option(keyRangeTableProto))
-
         val promise = Promise[Unit]()
 
+        val request = PartitionRequest(table = Option(tableProto))
         stub.partitionData(request).onComplete {
           case Success(response) => {
             if (response.isPartitioningSuccessful) {
