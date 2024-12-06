@@ -109,7 +109,6 @@ class NetworkClient(
 
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
     lazy val blocks: Array[Block] = tempFiles.map(makeBlockFromFile).toArray
-    val blocksCursor: Array[Int] = Array.fill(blocks.length)(1)
     var counter: Int = 0
     var emptyBlock: Int = 0
     val tournamentTree: Array[(Record, Int)] =
@@ -124,6 +123,7 @@ class NetworkClient(
         tournamentTree.update(
           cnt,
           (new Record(blocks(cnt).block.head.key, blocks(cnt).block.head.value), cnt))
+        blocks.update(cnt, new Block(blocks(cnt).block.tail))
         treePushInit(cnt + 1)
       }
     }
@@ -143,9 +143,9 @@ class NetworkClient(
       val treeIndex = findingMinValueIndex(tournamentTree)
       val (data, num) = tournamentTree(treeIndex)
       assert(num >= 0)
-      if (blocksCursor(num) <= blocks(num).block.length) {
-        tournamentTree.update(treeIndex, (blocks(num).block(blocksCursor(num)), num))
-        blocksCursor(num) += 1
+      blocks.update(num, new Block(blocks(num).block.tail))
+      if (blocks(num).block.nonEmpty) {
+        tournamentTree.update(treeIndex, (blocks(num).block.head, num))
       } else {
         tournamentTree.update(treeIndex, (new Record(Key.max, Array.empty[Byte]), -1))
         emptyBlock += 1
