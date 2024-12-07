@@ -127,8 +127,8 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
 
     logger.info("[Worker] Start sending samples")
     filePaths.foreach { filePath =>
-      val block = makeBlockFromFile(filePath)
-      block.sampling(Constant.Sample.number).foreach { key =>
+      val sample = sampling(filePath, Constant.Sample.number)
+      sample.foreach { key =>
         val dataChunk =
           DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = index, isEOF = false)
         val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
