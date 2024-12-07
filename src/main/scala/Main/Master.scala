@@ -36,6 +36,21 @@ object Master extends Logging {
       logger.info("[Master] Sending partitioning request")
       networkServer.requestPartitioning()
 
+      // Shuffling Phase
+      logger.info("[Master] Shuffling Phase")
+      logger.info("[Master] Sending shuffling request")
+      networkServer.requestShuffling()
+
+      // Merging Phase
+      // logger.info("[Master] Merging Phase")
+      // logger.info("[Master] Sending merging request")
+      // networkServer.requestMerging()
+      
+      // Verification Phase
+      // logger.info("[Master] Verification Phase")
+      // logger.info("[Master] Sending verification request")
+      // networkServer.requestVerification()
+
     } catch {
       case except: Exception => logger.error(except)
     } finally {

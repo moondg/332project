@@ -34,7 +34,7 @@ import Utils.Prelude._
 import Utils.Interlude._
 
 // Import gRPC libraries
-import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status}
+import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status, ManagedChannel}
 import io.grpc.stub.StreamObserver
 import com.google.protobuf.ByteString
 
@@ -47,6 +47,7 @@ import message.merging.{MergeRequest, MergeResponse}
 import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
+import javax.xml.crypto.Data
 
 class NetworkClient(
     val master: Node,
@@ -68,8 +69,12 @@ class NetworkClient(
 
   val stubToMaster = MasterServiceGrpc.stub(channelToMaster)
 
+  var channelToWorkers = List.empty[ManagedChannel]
+
+  var stubToWorkers = List.empty[WorkerServiceGrpc.WorkerServiceStub]
+
   def start(): Unit = {
-    clientService = new ClientImpl(inputDirs, outputDir)
+    clientService = new ClientImpl(inputDirs, outputDir, client)
     server = ServerBuilder
       .forPort(port)
       .addService(WorkerServiceGrpc.bindService(clientService, executionContext))
@@ -110,12 +115,14 @@ class NetworkClient(
   def wait_until_all_data_received(): Unit = {}
 }
 
-class ClientImpl(val inputDirs: List[String], val outputDir: String)
+class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisClient: Node)
     extends WorkerServiceGrpc.WorkerService
     with Logging {
-
+  
   val fileNames = inputDirs.map(getFileNames).flatten
   val filePaths = getAllFilePaths(inputDirs)
+
+  var keyRangeTable: Table = null
 
   override def sampleData(
       request: SampleRequest,
@@ -149,7 +156,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
     logger.info("[Worker] Partitioning request received")
-    val keyRangeTable: Table = request.table match {
+    keyRangeTable = request.table match {
       case Some(keyRangeTableProto) =>
         keyRangeTableProto.rows.map { keyRangeProto =>
           val start = new Key(keyRangeProto.range match {
@@ -215,23 +222,121 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
   }
 
   override def runShuffle(request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
+    
+    // Get clients   
+    val clients = keyRangeTable.filter( tableRow => tableRow._2 != thisClient).map { tableRow => tableRow._2 }
+    val channels = clients.map { case (ip, port) =>
+      ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build()
+    }
+    val stubs = channels.map { channel => WorkerServiceGrpc.stub(channel) }
+    
+    // Send ExchangeRequest to all clients
+    val exchangeResponses: Seq[Future[Boolean]] = clients.zip(stubs).map { case (client, stub) =>
+      val promise = Promise[Boolean]()
+      val exchangeRequest = ShuffleExchangeRequest(
+        sourceIp = thisClient._1,
+        sourcePort = thisClient._2,
+        destinationIp = client._1,
+        destinationPort = client._2
+        )
+      
+      var haveReachedEOF = false
 
-    val response = ShuffleRunResponse(isShufflingSuccessful = true)
+      val responseObserver = new StreamObserver[ShuffleExchangeResponse] {
+        override def onNext(exchangeResponse: ShuffleExchangeResponse): Unit = {
+          assert (client._1 == exchangeResponse.sourceIp)
+          assert (client._2 == exchangeResponse.sourcePort)
+          assert (thisClient._1 == exchangeResponse.destinationIp)
+          assert (thisClient._2 == exchangeResponse.destinationPort)
+
+          exchangeResponse.data match {
+            case Some(dataChunk) => {
+              val record = Record.recordFrom(dataChunk.data.toByteArray)
+              haveReachedEOF = dataChunk.isEOF
+              if (!haveReachedEOF) {
+                // TODO: Write record to disk
+              
+              }
+            }
+            case None => onError(new Exception("Received empty data chunk"))
+          }
+        }
+
+        override def onError(t: Throwable): Unit = {
+          promise.failure(t)
+        }
+
+        override def onCompleted(): Unit = {
+          if (haveReachedEOF) {
+            promise.success(true)
+          } else {
+            promise.failure(new Exception("Did not receive EOF"))
+          }
+        }
+      }
+
+      logger.info(s"[Worker] Sending exchange request to ${client._1}:${client._2}")
+      
+      stub.exchangeData(exchangeRequest, responseObserver)
+      promise.future
+    }
+
+    val response: ShuffleRunResponse = try {
+      // Await responses
+      val allExchangeResponses = Await.result(Future.sequence(exchangeResponses), Duration.Inf)
+      val isExchangeSuccessful = allExchangeResponses.forall(_ == true)
+      ShuffleRunResponse(isShufflingSuccessful = isExchangeSuccessful)
+    } catch {
+      case e: Exception =>
+        logger.error(e)
+        ShuffleRunResponse(isShufflingSuccessful = false)
+    }
+
+    // Close channels
+    channels.foreach { channel => channel.shutdown() }
+
+    logger.info(s"[Worker] Finished Receiving data from other clients")
+
     Future.successful(response)
   }
 
-  override def exchangeData(request: ShuffleExchangeRequest): Future[ShuffleExchangeResponse] = {
+  override def exchangeData(
+    request: ShuffleExchangeRequest, 
+    responseObserver: StreamObserver[ShuffleExchangeResponse]
+  ): Unit = {
 
-    // Pack values and send data
-    val data = Seq(???)
+    // Assert that the request is coming from the correct client
+    assert(thisClient._1 == request.destinationIp)
+    assert(thisClient._2 == request.destinationPort)
+    
+    logger.info(s"[Worker] Received exchange request from ${request.sourceIp}:${request.sourcePort}")
+    // TODO: Pack values 
+    val data: Seq[Record] = Seq(???)
+    data.zipWithIndex.foreach { case (value, index) => 
+      val dataChunk = DataChunk(data = ByteString.copyFrom(value.raw), chunkIndex = index, isEOF = false)
+      val response = ShuffleExchangeResponse(
+        sourceIp = request.destinationIp,
+        sourcePort = request.destinationPort,
+        destinationIp = request.sourceIp,
+        destinationPort = request.sourcePort,
+        data = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = index, isEOF = false))
+      )
 
-    val response = ShuffleExchangeResponse(
-      sourceIp = "",
-      sourcePort = 0,
-      destinationIp = "",
-      destinationPort = 0,
-      data = data)
-    Future.successful(response)
+      logger.info(s"[Worker] Sending data to ${request.sourceIp}:${request.sourcePort}")
+      responseObserver.onNext(response)
+    }
+
+    // Send EOF
+    val emptyResponse = ShuffleExchangeResponse(
+      sourceIp = request.destinationIp,
+      sourcePort = request.destinationPort,
+      destinationIp = request.sourceIp,
+      destinationPort = request.sourcePort,
+      data = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = data.length, isEOF = true))
+    )
+    responseObserver.onNext(emptyResponse)
+    responseObserver.onCompleted()
+    logger.info(s"[Worker] Finished sending data to ${request.sourceIp}:${request.sourcePort}")
   }
 
   override def mergeData(request: MergeRequest): Future[MergeResponse] = {

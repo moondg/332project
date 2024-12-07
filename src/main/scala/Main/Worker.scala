@@ -48,8 +48,8 @@ object Worker {
         Thread.sleep(1000)
       }
       // network.sendRecords()
-      network.send_unmatched_data()
-      network.wait_until_all_data_received()
+      // network.send_unmatched_data()
+      // network.wait_until_all_data_received()
     } catch {
       case except: Exception => println(except)
     } finally {

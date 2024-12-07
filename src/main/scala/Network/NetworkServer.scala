@@ -100,16 +100,15 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
         val responseObserver = new StreamObserver[SampleResponse] {
           override def onNext(value: SampleResponse): Unit = {
             value.sample match {
-              case Some(datachunk) =>
-                haveReachedEOF = datachunk.isEOF
+              case Some(dataChunk) =>
+                haveReachedEOF = dataChunk.isEOF
                 // Synchronize buffer
                 if (!haveReachedEOF) {
                   buffer.synchronized {
-                    buffer += new Key(datachunk.data.toByteArray)
+                    buffer += new Key(dataChunk.data.toByteArray)
                   }
                 }
-              case None =>
-                onError(new Exception("Received empty data chunk"))
+              case None => onError(new Exception("Received empty data chunk"))
             }
           }
 
@@ -167,7 +166,10 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       case (client, stub) => {
         val promise = Promise[Unit]()
 
-        val request = PartitionRequest(table = Option(tableProto))
+        val request = PartitionRequest(
+          workerIp = client._1,
+          workerPort = client._2,
+          table = Option(tableProto))
         stub.partitionData(request).onComplete {
           case Success(response) => {
             if (response.isPartitioningSuccessful) {
@@ -240,8 +242,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       case (client, stub) => {
         val promise = Promise[Unit]()
 
-        val request = ShuffleRunRequest()
-        stub.shuffleData(request).onComplete {
+        val request = ShuffleRunRequest(
+          workerIp = client._1,
+          workerPort = client._2
+        )
+
+        stub.runShuffle(request).onComplete {
           case Success(response) => {
             if (response.isShufflingSuccessful) {
               promise.success(())
@@ -262,7 +268,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     } catch {
       case e: Exception => {
         state = MasterReceivedShuffleResponseFailure
-        logger.info(s"Failed to receive shuffle data: ${e.getMessage}")
+        logger.info(s"Failed to shuffle data: ${e.getMessage}")
       }
     }
   }
