@@ -44,9 +44,9 @@ object Postlude {
       val treeIndex = findingMinValueIndex(tournamentTree)
       val (data, num) = tournamentTree(treeIndex)
       assert(num >= 0)
-      blocks.update(num, new Block(blocks(num).block.tail))
       if (blocks(num).block.nonEmpty) {
         tournamentTree.update(treeIndex, (blocks(num).block.head, num))
+        blocks.update(num, new Block(blocks(num).block.tail))
       } else {
         tournamentTree.update(treeIndex, (new Record(Key.max, Array.empty[Byte]), -1))
         emptyBlock += 1
