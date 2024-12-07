@@ -24,6 +24,7 @@ object Master extends Logging {
       while (networkServer.clients.length < numberOfWorkers) { Thread.sleep(1000) }
 
       logger.info("[Master] All workers connected")
+      networkServer.ipLogging()
       networkServer.createChannels()
 
       // Sampling Phase

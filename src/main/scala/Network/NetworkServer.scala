@@ -208,20 +208,19 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
 
   }
-  /*
+
   def ipLogging(): Unit = {
     @tailrec
-    def clientIPLogging(clients: List[WorkerStatus]): Unit = {
+    def clientIPLogging(clients: List[Node]): Unit = {
       assert(clients != Nil)
-      logger.info(s"[Master] Worker IP - ${clients.head.ip}")
+      logger.info(s"[Master] Worker IP - ${clients.head._1}")
       if (clients.tail != Nil) clientIPLogging(clients.tail)
     }
     val ip = InetAddress.getLocalHost.getAddress
-    logger.info(
-      s"[Master] Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(2).toString}.${ip(3).toString}:${port.toString}")
+    logger.info(s"[Master] Master IP:Port - ${ip(0).toString}.${ip(1).toString}.${ip(
+        2).toString}.${ip(3).toString}:${port.toString}")
     clientIPLogging(clients.toList)
   }
-   */
 
   def divideKeyRange(): List[KeyRange] = {
     val samplePerWorker: Int = sample.length / numberOfWorkers
