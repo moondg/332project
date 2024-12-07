@@ -9,7 +9,7 @@ import java.io.{File, FileOutputStream}
 
 object Postlude {
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
-    lazy val blocks: Array[Block] = tempFiles.map(makeBlockFromFile).toArray
+    lazy val blocks: Array[Block] = tempFiles.map(blockFromFile).toArray
     var counter: Int = 0
     var emptyBlock: Int = 0
     val tournamentTree: Array[(Record, Int)] =

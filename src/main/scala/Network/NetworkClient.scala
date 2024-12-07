@@ -178,7 +178,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
 
     val processingFutures = (filePaths zip fileNames).map { case (filePath, fileName) =>
       Future {
-        val block = makeBlockFromFile(filePath)
+        val block = blockFromFile(filePath)
         logger.info(s"[Worker] ${fileName} start")
 
         try {

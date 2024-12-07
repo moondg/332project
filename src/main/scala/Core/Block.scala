@@ -20,11 +20,11 @@ object Block {
       source.close()
     }
   }
-  def makeBlockFromFile(filePath: String): Block = {
+  def blockFromFile(filePath: String): Block = {
     new Block(
       readFile(filePath)
         .grouped(Constant.Size.record)
-        .map(arr => convertFrom(arr))
+        .map(arr => recordFrom(arr))
         .toList)
   }
 }
