@@ -3,7 +3,6 @@ package Core
 import Core.Record._
 import scala.io.Source
 import Core.TournamentTree._
-import Core.PartitionBuffer
 
 object TournamentTree {
   sealed trait Tree[A <: Ordered[A]] {
