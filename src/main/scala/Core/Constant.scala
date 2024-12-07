@@ -8,6 +8,6 @@ object Constant {
   }
   object Sample {
     def ratio: Int = 1
-    def number: Int = 1024
+    def number: Int = 1000
   }
 }

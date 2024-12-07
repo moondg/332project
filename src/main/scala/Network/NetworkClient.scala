@@ -126,16 +126,15 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
     var length = 0
 
     logger.info("[Worker] Start sending samples")
-    for {
-      filePath <- filePaths
+    filePaths.foreach { filePath =>
       val block = makeBlockFromFile(filePath)
-      key <- block.sampling((block.size * percentageOfSampling / 100.0).ceil.toInt)
-    } yield {
-      val dataChunk =
-        DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = length, isEOF = false)
-      val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
-      responseObserver.onNext(response)
-      length = length + 1
+      block.sampling(Constant.Sample.number).foreach { key =>
+        val dataChunk =
+          DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = length, isEOF = false)
+        val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
+        responseObserver.onNext(response)
+        length = length + 1
+      }
     }
 
     val emptyResponse = SampleResponse(
