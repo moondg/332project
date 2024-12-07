@@ -13,6 +13,7 @@ import scala.concurrent.duration._
 import scala.collection.mutable.{Map, ListBuffer}
 import scala.util.{Success, Failure}
 import scala.annotation.tailrec
+import scala.util.hashing.MurmurHash3.stringHash
 
 // Import necessary java libraries
 import java.net.InetAddress
@@ -46,7 +47,6 @@ import message.merging.{MergeRequest, MergeResponse}
 import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
-import javax.xml.crypto.Data
 
 class NetworkClient(
     val master: Node,
@@ -123,23 +123,24 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
 
     val percentageOfSampling = request.percentageOfSampling
 
-    var length = 0
+    var index = 0
 
     logger.info("[Worker] Start sending samples")
     filePaths.foreach { filePath =>
       val block = makeBlockFromFile(filePath)
       block.sampling(Constant.Sample.number).foreach { key =>
         val dataChunk =
-          DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = length, isEOF = false)
+          DataChunk(data = ByteString.copyFrom(key.key), chunkIndex = index, isEOF = false)
         val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
         responseObserver.onNext(response)
-        length = length + 1
+        index = index + 1
+        if (index % 1000 == 0) logger.info(s"[Worker] Send ${index} records")
       }
     }
 
     val emptyResponse = SampleResponse(
       isSamplingSuccessful = true,
-      sample = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = length, isEOF = true)))
+      sample = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = index, isEOF = true)))
     responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
 
@@ -172,28 +173,44 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
       logger.info(s"Table: ${keyRange.hex} ${node._1}")
     }
 
-    val promise = Promise[PartitionResponse]
-    lazy val blocks: List[Block] = filePaths.map(makeBlockFromFile(_))
-    Future {
-      try {
-        for {
-          (filePath, fileName) <- filePaths zip fileNames
-          val block = makeBlockFromFile(filePath)
-          (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
-          val outFilePath = s"${outputDir}/${node._1}:${node._2}_${filePath.hashCode()}_${fileName}"
-        } yield {
-          logger.info(s"Write start: ${fileName} ${node._1}:${node._2}")
-          writeFile(outFilePath, partition)
-          logger.info(s"Write end:   ${fileName} ${node._1}:${node._2}")
-        }
-        logger.info("Partition Done")
-        promise.success(PartitionResponse(isPartitioningSuccessful = true))
-      } catch {
-        case exception: Exception => {
-          promise.failure(exception)
+    val promise = Promise[PartitionResponse]()
+    logger.info("[Worker] Partition Start")
+
+    val processingFutures = (filePaths zip fileNames).map { case (filePath, fileName) =>
+      Future {
+        val block = makeBlockFromFile(filePath)
+        logger.info(s"[Worker] ${fileName} start")
+
+        try {
+          for {
+            (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
+            outFilePath = s"${outputDir}/${node._1}:${node._2}_${stringHash(filePath)}_${fileName}"
+          } yield {
+            writeFile(outFilePath, partition)
+          }
+          logger.info(s"[Worker] ${fileName} end")
+          Success(PartitionResponse(isPartitioningSuccessful = true))
+        } catch {
+          case exception: Exception =>
+            logger.error(s"[Worker] Error processing $fileName: ${exception.getMessage}")
+            Failure(exception)
         }
       }
     }
+
+// Wait for all futures to complete and collect results
+    Future.sequence(processingFutures).onComplete {
+      case Success(results) =>
+        if (results.forall(_.isSuccess)) {
+          promise.success(PartitionResponse(isPartitioningSuccessful = true))
+        } else {
+          val firstFailure = results.collectFirst { case Failure(e) => e }.get
+          promise.failure(firstFailure)
+        }
+      case Failure(exception) =>
+        promise.failure(exception)
+    }
+
     promise.future
   }
 
