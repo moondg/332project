@@ -1,9 +1,7 @@
 package Utils
 
 import Network.Network.{IPAddr, Port}
-import Core.Key._
 import scala.annotation.tailrec
-import message.common.KeyRange
 
 object Prelude {
   def getIPAddr(): IPAddr = {
@@ -37,6 +35,7 @@ object Prelude {
   def parseInputDirs(args: List[String]): List[String] = {
     (args takeWhile (_ != "-O")) drop 3
   }
+
   def getFileNames(dir: String): List[String] = {
     import java.nio.file.{Paths, Files}
     import scala.jdk.CollectionConverters._

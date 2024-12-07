@@ -134,7 +134,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String)
         val response = SampleResponse(isSamplingSuccessful = true, sample = Some(dataChunk))
         responseObserver.onNext(response)
         index = index + 1
-        if (index % 1000 == 0) logger.info(s"[Worker] Send ${index} records")
+        if (index % 1000 == 0) logger.info(s"[Worker] Send ${index} samples")
       }
     }
 
