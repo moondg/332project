@@ -29,7 +29,7 @@
 1. Master sends `PartitioningRequest` to all workers.
 1. Worker gets its own key range.
 1. Worker splits its disk into block(this can be done in [Initial phase](#initial-phase)). Block size is approximately same as RAM size, but should not exceed.
-1. Worker spilts block into several partitions using key range table.(This is just marking. Since key range is assigned to be ascending order, sorted data block in RAM does not need extra works)
+1. Worker spilts block into several partitions using key range table and save as partition file
 1. Worker sends `PartitionResponse` to master.
 1. Master waits until every worker sends `PartitionResponse`.
 
