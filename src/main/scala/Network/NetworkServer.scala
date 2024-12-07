@@ -234,6 +234,39 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
     acc(groupedSample, Key.min)
   }
+
+  def requestShuffling(): Unit = {
+    val responses = clients.zip(stubs).toSeq.map {
+      case (client, stub) => {
+        val promise = Promise[Unit]()
+
+        val request = ShuffleRunRequest()
+        stub.shuffleData(request).onComplete {
+          case Success(response) => {
+            if (response.isShufflingSuccessful) {
+              promise.success(())
+            } else {
+              promise.failure(new Exception("Shuffling failed"))
+            }
+          }
+          case Failure(e) => promise.failure(e)
+        }
+
+        promise.future
+      }
+    }
+
+    try {
+      Await.result(Future.sequence(responses), Duration.Inf)
+      state = MasterReceivedShuffleResponse
+    } catch {
+      case e: Exception => {
+        state = MasterReceivedShuffleResponseFailure
+        logger.info(s"Failed to receive shuffle data: ${e.getMessage}")
+      }
+    }
+  }
+  
 }
 
 class ServerImpl(clients: ListBuffer[Node]) extends MasterServiceGrpc.MasterService with Logging {
