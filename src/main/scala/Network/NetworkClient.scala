@@ -363,22 +363,26 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
 
   override def mergeData(request: MergeRequest): Future[MergeResponse] = {
     val promise = Promise[MergeResponse]()
-    
-    // TODO: Make Merging Future here
-    val processingFutures: Future[MergeResponse] = ???
-    
-    Future.sequence(processingFutures).onComplete {
-      case Success(results) =>
-        if (results.forall(_.isSuccess)) {
-          promise.success(MergeResponse(isMergeSuccessful = true))
-        } else {
-          val firstFailure = results.collectFirst { case Failure(e) => e }.get
-          promise.failure(firstFailure)
-        }
-      case Failure(exception) =>
+
+    Future {
+      val tempFilePaths = getAllFilePaths(List(outputDir))
+      val tournamentTree = new TournamentTree(tempFilePaths, outputDir)
+      logger.info("[Worker] Merge Start")
+      tournamentTree.merge()
+    }.onComplete({
+      case Success(value) => {
+        logger.info("[Worker] Merge Complete")
+        val response = MergeResponse(isMergeSuccessful = true)
+        promise.success(response)
+      }
+      case Failure(exception) => {
+        logger.error("[Worker] Merge Failed with")
+        logger.error(exception)
+        val response = MergeResponse(isMergeSuccessful = false)
         promise.failure(exception)
-    }
-    
+      }
+    })
+
     promise.future
   }
 
