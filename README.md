@@ -1,6 +1,8 @@
 # 332project
 Upload CSED332(Software Design Method) group project works
 
+You can find how to excute in Docs/Excution Guide.md
+
 ## Index
 [1. Participants](#participants)
 [2. Milestone](#milestone)
