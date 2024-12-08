@@ -196,21 +196,6 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
   }
 
-  def pivot_check(): Unit = {
-
-    val f = Future {}
-
-    f.onComplete {
-      case Success(v) => {
-        state = MasterReceivedSampleResponse
-      }
-      case Failure(e) => {
-        state = MasterReceivedSampleResponseFailure
-      }
-    }
-
-  }
-
   def ipLogging(): Unit = {
     @tailrec
     def clientIPLogging(clients: List[Node]): Unit = {
