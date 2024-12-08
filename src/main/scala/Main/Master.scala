@@ -71,7 +71,7 @@ object Master extends Logging {
       // logger.info("[Master] Sending verification request")
       // networkServer.requestVerification()
 
-      masterFSM.transition(MasterEventFinish)
+      masterFSM.transition(MasterEventFinishSorting)
       assert(masterFSM.getState() == MasterFinished)
       logger.info("[Master] Finished Sorting")
 
