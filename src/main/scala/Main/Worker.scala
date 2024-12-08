@@ -17,6 +17,7 @@ import scala.io.Source
 import scala.concurrent.ExecutionContext
 
 import Utils.Prelude._
+import Utils.Postlude._
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -58,6 +59,7 @@ object Worker {
       case except: Exception => println(except)
     } finally {
       network.shutdown()
+      clearFile(outputDir)
     }
 
   }

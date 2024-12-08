@@ -2,13 +2,14 @@ package Utils
 
 import Core._
 import Core.Block._
+import Core.Constant.Prefix
 import Core.Key._
 
 import scala.annotation.tailrec
 import java.io.{File, FileOutputStream}
-import message.common.DataChunk
 import com.google.protobuf.ByteString
 import Network.Network.Node
+import Utils.Prelude.getFileNames
 
 object Postlude {
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
@@ -69,7 +70,18 @@ object Postlude {
 
     counter
   }
+
   def emptyDataChunk(index: Int): DataChunk = {
     DataChunk(data = ByteString.EMPTY, chunkIndex = index, isEOF = true)
+  }
+
+  def clearFile(outputDir: String): Unit = {
+    val deleteFilePaths =
+      getFileNames(outputDir)
+        .filter(s => (s.take(Prefix.merged.length)) != Prefix.merged)
+        .map(outputDir ++ "/" ++ _)
+    for (file <- deleteFilePaths) {
+      new File(file).delete()
+    }
   }
 }

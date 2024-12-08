@@ -10,4 +10,8 @@ object Constant {
     def ratio: Int = 1
     def number: Int = 1000
   }
+  object Prefix {
+    def shuffling = "received"
+    def merged = "result"
+  }
 }
