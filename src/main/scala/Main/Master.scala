@@ -71,6 +71,11 @@ object Master extends Logging {
       // logger.info("[Master] Sending verification request")
       // networkServer.requestVerification()
 
+      masterFSM.transition(MasterEventFinish)
+      assert(masterFSM.getState() == MasterFinished)
+      logger.info("[Master] Finished Sorting")
+
+
     } catch {
       case except: Exception => {
         masterFSM.transition(MasterEventError)
