@@ -52,6 +52,7 @@ import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
 import javax.xml.crypto.Data
 import Core.Constant.Size
 import Core.Record.recordFrom
+import Core.Constant.Prefix
 
 class NetworkClient(
     val master: Node,
@@ -194,8 +195,13 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         try {
           for {
             (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
-            outFilePath = s"${outputDir}/${node._1}:${node._2}_${stringHash(filePath)}_${fileName}"
           } yield {
+            var outFilePath = ""
+            if (node == thisClient)
+              outFilePath = s"${outputDir}/${Prefix.shuffling}_${thisClient._1}_${thisClient._2}"
+            else
+              outFilePath =
+                s"${outputDir}/${node._1}:${node._2}_${stringHash(filePath)}_${fileName}"
             writeFile(outFilePath, partition)
           }
           logger.info(s"[Worker] ${fileName} end")
@@ -248,7 +254,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       var haveReachedEOF = false
 
       var fileIdRef = 0
-      val outFilePath = s"${outputDir}/received_${client._1}_"
+      val outFilePath = s"${outputDir}/${Prefix.shuffling}_${client._1}_"
       var file = new File(outFilePath + fileIdRef.toString)
       var fileWriter = new FileOutputStream(file, file.exists())
 
@@ -378,7 +384,9 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
     val promise = Promise[MergeResponse]()
 
     Future {
-      val tempFilePaths = getAllFilePaths(List(outputDir))
+      val tempFilePaths =
+        getAllFilePaths(List(outputDir)).filter(s =>
+          (s.take(Prefix.shuffling.length)) == Prefix.shuffling)
       val tournamentTree = new TournamentTree(tempFilePaths, outputDir ++ "/result")
       logger.info("[Worker] Merge Start")
       tournamentTree.merge()
