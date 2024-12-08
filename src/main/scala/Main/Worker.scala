@@ -36,26 +36,37 @@ object Worker {
     val inputDirs: List[String] = inputDirParse(args.toList)
     val outputDir: String = args.last
 
-    val workerFSM = WorkerFSM(WorkerInitial)
+    var workerFSM: MutableWorkerFSM = new MutableWorkerFSM(WorkerInitial)
 
     val network = new NetworkClient(
       master,
       client,
       inputDirs,
       outputDir,
+      workerFSM,
       executionContext = ExecutionContext.global)
 
     try {
       network.start()
       network.connectToServer()
-      while (true) {
-        Thread.sleep(1000)
+      assert(workerFSM.getState() == WorkerConnectionEstablished)
+      
+      while (workerFSM.getState() != WorkerSentMergeResponse) {
+        if (workerFSM.getState() == WorkerError) {
+          throw new Exception("Worker error")
+        }
       }
-      // network.sendRecords()
-      // network.send_unmatched_data()
-      // network.wait_until_all_data_received()
+
+      while (network.isSendingDataComplete() == false) {
+        logger.info("[Worker] Waiting for data to be sent")
+        Thread.sleep(10000)
+      }
+
     } catch {
-      case except: Exception => println(except)
+      case except: Exception => {
+        workerFSM.transition(WorkerEventError)
+        println(except)
+      }
     } finally {
       network.shutdown()
     }
