@@ -227,7 +227,11 @@ class ClientImpl(
         val block = blockFromFile(filePath)
         logger.info(s"[Worker] ${fileName} start")
 
-        if (workerFSM.getState() != WorkerSending)
+        if (workerFSM.getState() != WorkerSendPartitionResponse){
+          workerFSM.transition(WorkerEventSendPartitionResponse)
+        }
+
+        assert(workerFSM.getState() == WorkerSendingPartitionResponse)
 
         try {
           for {
