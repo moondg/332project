@@ -28,5 +28,5 @@ sbt "run MASTER_IP:MASTER_PORT -I PATH_TO_INPUT_DIR_1 PATH_TO_INPUT_DIR_2 ... PA
 ```
 For each worker, run command above.   
 You have to choose Worker after compling. (3)   
-Worker should be excuted after Master's excution.   
+Worker should be excuted after Master starts to wait connection of Workers. (Logger shows when Master start to wait)   
 Worker's output directory should be empty.   
