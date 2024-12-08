@@ -2,6 +2,7 @@ package Network
 
 import Network._
 
+import java.io.{File, FileOutputStream}
 import java.util.logging.FileHandler
 import scala.::
 import scala.collection.mutable
@@ -246,6 +247,8 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
 
       var haveReachedEOF = false
 
+      var fileIdRef = 0
+
       val responseObserver = new StreamObserver[ShuffleExchangeResponse] {
         override def onNext(exchangeResponse: ShuffleExchangeResponse): Unit = {
           assert(client._1 == exchangeResponse.sourceIp)
@@ -253,13 +256,20 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
           assert(thisClient._1 == exchangeResponse.destinationIp)
           assert(thisClient._2 == exchangeResponse.destinationPort)
 
+          val outFilePath = s"${outputDir}/received_${client._1}_${fileIdRef}"
+          val file = new File(outFilePath)
+          val fileWriter = new FileOutputStream(file, file.exists())
+
           exchangeResponse.data match {
             case Some(dataChunk) => {
               val record = Record.recordFrom(dataChunk.data.toByteArray)
               haveReachedEOF = dataChunk.isEOF
               if (!haveReachedEOF) {
-                val outFilePath = s"${outputDir}/received_${client._1}_${dataChunk.chunkIndex}"
-                writeFile(outFilePath, List(record))
+                fileWriter.write(record.key.key)
+                fileWriter.write(record.value)
+              } else {
+                fileIdRef += 1
+                fileWriter.close()
               }
             }
             case None => onError(new Exception("Received empty data chunk"))
@@ -319,7 +329,6 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
     var size = 0
     val exchangeFileNames = getFileNames(outputDir)
       .filter(s => (s takeWhile (_ != '_')) == s"${request.sourceIp}:${request.sourcePort}")
-      .map(s => s.dropWhile(_ != '_'))
 
     exchangeFileNames.foreach { exchangeFileName =>
       val data: Seq[Record] =
