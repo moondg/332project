@@ -116,6 +116,9 @@ class NetworkClient(
         logger.error(e)
       }
     }
+
+    workerFSM.transition(WorkerEventProceedSampling)
+    assert(workerFSM.getState() == WorkerPendingSampleRequest)
   }
 
   def shutdown(): Unit = {}
@@ -146,7 +149,7 @@ class ClientImpl(
       request: SampleRequest,
       responseObserver: StreamObserver[SampleResponse]): Unit = {
 
-    assert(workerFSM.getState() == WorkerConnectionEstablished)
+    assert(workerFSM.getState() == WorkerPendingSampleRequest)
     workerFSM.transition(WorkerEventReceiveSampleRequest)
     assert(workerFSM.getState() == WorkerReceivedSampleRequest)
     logger.info("[Worker] Sample request received")
