@@ -32,6 +32,7 @@ import Core.{Key, KeyRange}
 import Core.Block._
 import Utils.Prelude._
 import Utils.Interlude._
+import Utils.Postlude._
 
 // Import gRPC libraries
 import io.grpc.{Server, ManagedChannelBuilder, ServerBuilder, Status, ManagedChannel}
@@ -48,6 +49,8 @@ import message.verification.{VerificationRequest, VerificationResponse}
 import message.service.{MasterServiceGrpc, WorkerServiceGrpc}
 import message.common.{DataChunk, KeyRange, KeyRangeTableRow, KeyRangeTable}
 import javax.xml.crypto.Data
+import Core.Constant.Size
+import Core.Record.recordFrom
 
 class NetworkClient(
     val master: Node,
@@ -118,7 +121,7 @@ class NetworkClient(
 class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisClient: Node)
     extends WorkerServiceGrpc.WorkerService
     with Logging {
-  
+
   val fileNames = inputDirs.map(getFileNames).flatten
   val filePaths = getAllFilePaths(inputDirs)
 
@@ -145,9 +148,8 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       }
     }
 
-    val emptyResponse = SampleResponse(
-      isSamplingSuccessful = true,
-      sample = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = index, isEOF = true)))
+    val emptyResponse =
+      SampleResponse(isSamplingSuccessful = true, sample = Some(emptyDataChunk(index)))
     responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
 
@@ -222,14 +224,15 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
   }
 
   override def runShuffle(request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
-    
-    // Get clients   
-    val clients = keyRangeTable.filter( tableRow => tableRow._2 != thisClient).map { tableRow => tableRow._2 }
+
+    // Get clients
+    val clients =
+      keyRangeTable.filter(tableRow => tableRow._2 != thisClient).map { tableRow => tableRow._2 }
     val channels = clients.map { case (ip, port) =>
       ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build()
     }
     val stubs = channels.map { channel => WorkerServiceGrpc.stub(channel) }
-    
+
     // Send ExchangeRequest to all clients
     val exchangeResponses: Seq[Future[Boolean]] = clients.zip(stubs).map { case (client, stub) =>
       val promise = Promise[Boolean]()
@@ -237,17 +240,16 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         sourceIp = thisClient._1,
         sourcePort = thisClient._2,
         destinationIp = client._1,
-        destinationPort = client._2
-        )
-      
+        destinationPort = client._2)
+
       var haveReachedEOF = false
 
       val responseObserver = new StreamObserver[ShuffleExchangeResponse] {
         override def onNext(exchangeResponse: ShuffleExchangeResponse): Unit = {
-          assert (client._1 == exchangeResponse.sourceIp)
-          assert (client._2 == exchangeResponse.sourcePort)
-          assert (thisClient._1 == exchangeResponse.destinationIp)
-          assert (thisClient._2 == exchangeResponse.destinationPort)
+          assert(client._1 == exchangeResponse.sourceIp)
+          assert(client._2 == exchangeResponse.sourcePort)
+          assert(thisClient._1 == exchangeResponse.destinationIp)
+          assert(thisClient._2 == exchangeResponse.destinationPort)
 
           exchangeResponse.data match {
             case Some(dataChunk) => {
@@ -255,7 +257,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
               haveReachedEOF = dataChunk.isEOF
               if (!haveReachedEOF) {
                 // TODO: Write record to disk
-              
+
               }
             }
             case None => onError(new Exception("Received empty data chunk"))
@@ -276,21 +278,22 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       }
 
       logger.info(s"[Worker] Sending exchange request to ${client._1}:${client._2}")
-      
+
       stub.exchangeData(exchangeRequest, responseObserver)
       promise.future
     }
 
-    val response: ShuffleRunResponse = try {
-      // Await responses
-      val allExchangeResponses = Await.result(Future.sequence(exchangeResponses), Duration.Inf)
-      val isExchangeSuccessful = allExchangeResponses.forall(_ == true)
-      ShuffleRunResponse(isShufflingSuccessful = isExchangeSuccessful)
-    } catch {
-      case e: Exception =>
-        logger.error(e)
-        ShuffleRunResponse(isShufflingSuccessful = false)
-    }
+    val response: ShuffleRunResponse =
+      try {
+        // Await responses
+        val allExchangeResponses = Await.result(Future.sequence(exchangeResponses), Duration.Inf)
+        val isExchangeSuccessful = allExchangeResponses.forall(_ == true)
+        ShuffleRunResponse(isShufflingSuccessful = isExchangeSuccessful)
+      } catch {
+        case e: Exception =>
+          logger.error(e)
+          ShuffleRunResponse(isShufflingSuccessful = false)
+      }
 
     // Close channels
     channels.foreach { channel => channel.shutdown() }
@@ -301,29 +304,49 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
   }
 
   override def exchangeData(
-    request: ShuffleExchangeRequest, 
-    responseObserver: StreamObserver[ShuffleExchangeResponse]
-  ): Unit = {
+      request: ShuffleExchangeRequest,
+      responseObserver: StreamObserver[ShuffleExchangeResponse]): Unit = {
 
-    // Assert that the request is coming from the correct client
+    // Assert that the request is coming to the correct client
     assert(thisClient._1 == request.destinationIp)
     assert(thisClient._2 == request.destinationPort)
-    
-    logger.info(s"[Worker] Received exchange request from ${request.sourceIp}:${request.sourcePort}")
-    // TODO: Pack values 
-    val data: Seq[Record] = Seq(???)
-    data.zipWithIndex.foreach { case (value, index) => 
-      val dataChunk = DataChunk(data = ByteString.copyFrom(value.raw), chunkIndex = index, isEOF = false)
-      val response = ShuffleExchangeResponse(
+
+    logger.info(
+      s"[Worker] Received exchange request from ${request.sourceIp}:${request.sourcePort}")
+    // TODO: Pack values
+    var size = 0
+    val exchangeFileNames = getFileNames(outputDir)
+      .filter(s => (s takeWhile (_ != '_')) == s"${request.sourceIp}:${request.sourcePort}")
+      .map(s => s.dropWhile(_ != '_'))
+
+    exchangeFileNames.foreach { exchangeFileName =>
+      val data: Seq[Record] =
+        readFile(outputDir ++ "/" ++ exchangeFileName)
+          .grouped(Constant.Size.record)
+          .map(recordFrom)
+          .toSeq
+      size = size + data.length
+      logger.info(s"[Worker] Sending data to ${request.sourceIp}:${request.sourcePort}")
+      data.zipWithIndex.foreach { case (record, index) =>
+        val dataChunk =
+          DataChunk(data = ByteString.copyFrom(record.raw), chunkIndex = index, isEOF = false)
+        val response = ShuffleExchangeResponse(
+          sourceIp = request.destinationIp,
+          sourcePort = request.destinationPort,
+          destinationIp = request.sourceIp,
+          destinationPort = request.sourcePort,
+          data = Some(dataChunk))
+
+        responseObserver.onNext(response)
+      }
+      val emptyResponse = ShuffleExchangeResponse(
         sourceIp = request.destinationIp,
         sourcePort = request.destinationPort,
         destinationIp = request.sourceIp,
         destinationPort = request.sourcePort,
-        data = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = index, isEOF = false))
-      )
-
-      logger.info(s"[Worker] Sending data to ${request.sourceIp}:${request.sourcePort}")
-      responseObserver.onNext(response)
+        data = Some(emptyDataChunk(size)))
+      responseObserver.onNext(emptyResponse)
+      logger.info(s"[Worker] Send single partition to ${request.sourceIp}:${request.sourcePort}")
     }
 
     // Send EOF
@@ -332,8 +355,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       sourcePort = request.destinationPort,
       destinationIp = request.sourceIp,
       destinationPort = request.sourcePort,
-      data = Some(DataChunk(data = ByteString.EMPTY, chunkIndex = data.length, isEOF = true))
-    )
+      data = Some(emptyDataChunk(size)))
     responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
     logger.info(s"[Worker] Finished sending data to ${request.sourceIp}:${request.sourcePort}")

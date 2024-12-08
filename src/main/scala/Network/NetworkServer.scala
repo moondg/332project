@@ -242,10 +242,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       case (client, stub) => {
         val promise = Promise[Unit]()
 
-        val request = ShuffleRunRequest(
-          workerIp = client._1,
-          workerPort = client._2
-        )
+        val request = ShuffleRunRequest(workerIp = client._1, workerPort = client._2)
 
         stub.runShuffle(request).onComplete {
           case Success(response) => {
@@ -272,7 +269,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
       }
     }
   }
-  
+
 }
 
 class ServerImpl(clients: ListBuffer[Node]) extends MasterServiceGrpc.MasterService with Logging {
