@@ -137,6 +137,7 @@ case object MasterEventVerificationInterWorkerFailure extends MasterEvent
 // Events of Common
 case object MasterEventFinishSorting extends MasterEvent
 case object MasterEventError extends MasterEvent
+
 // Events of Worker
 sealed trait WorkerEvent
 
@@ -188,6 +189,7 @@ case object WorkerEventSendVerificationResponseComplete extends WorkerEvent
 
 // Events of Common
 case object WorkerEventFinishSorting extends WorkerEvent
+case object WorkerEventError extends WorkerEvent
 
 // Finite State Machine for Master that tracks the state of the each Master-Worker connection
 case class MasterFSM(state: MasterState, isVerificationNeeded: Boolean = false) {
