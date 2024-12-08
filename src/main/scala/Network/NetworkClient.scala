@@ -256,8 +256,8 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
               val record = Record.recordFrom(dataChunk.data.toByteArray)
               haveReachedEOF = dataChunk.isEOF
               if (!haveReachedEOF) {
-                // TODO: Write record to disk
-
+                val outFilePath = s"${outputDir}/received_${client._1}_${dataChunk.chunkIndex}"
+                writeFile(outFilePath, List(record))
               }
             }
             case None => onError(new Exception("Received empty data chunk"))
