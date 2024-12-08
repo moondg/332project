@@ -127,7 +127,7 @@ class NetworkClient(
   def sendRecords(records: List[Record], node: Node): Unit = {}
 
   def isSendingDataComplete(): Boolean = {
-    return clientService.sendCompleteCount == channelToWorkers.length
+    return clientService.sendCompleteCount == channelToWorkers.length + 1
   }
 
   def isMergeComplete(): Boolean = {
