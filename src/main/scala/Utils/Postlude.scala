@@ -7,6 +7,7 @@ import Core.Key._
 
 import scala.annotation.tailrec
 import java.io.{File, FileOutputStream}
+import message.common.DataChunk
 import com.google.protobuf.ByteString
 import Network.Network.Node
 import Utils.Prelude.getFileNames
