@@ -263,6 +263,8 @@ class ClientImpl(
     Future.sequence(processingFutures).onComplete {
       case Success(results) =>
         if (results.forall(_.isSuccess)) {
+          workerFSM.transition(WorkerEventSendPartitionResponseComplete)
+          assert(workerFSM.getState() == WorkerSentPartitionResponse)
           logger.info("[Worker] Partition Success")
           promise.success(PartitionResponse(isPartitioningSuccessful = true))
         } else {
@@ -273,6 +275,9 @@ class ClientImpl(
       case Failure(exception) =>
         promise.failure(exception)
     }
+
+    workerFSM.transition(WorkerEventProceedShuffling)
+    assert(workerFSM.getState() == WorkerPendingShuffleRequest)
 
     promise.future
   }
