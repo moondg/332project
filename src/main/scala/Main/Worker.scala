@@ -62,6 +62,10 @@ object Worker {
         Thread.sleep(10000)
       }
 
+      workerFSM.transition(WorkerEventFinishSorting)
+      assert(workerFSM.getState() == WorkerFinished)
+      logger.info("[Worker] Finished sorting")
+
     } catch {
       case except: Exception => {
         workerFSM.transition(WorkerEventError)
