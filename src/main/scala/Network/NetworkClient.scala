@@ -289,6 +289,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         override def onCompleted(): Unit = {
           if (haveReachedEOF) {
             fileWriter.close()
+            file.delete()
             promise.success(true)
           } else {
             promise.failure(new Exception("Did not receive EOF"))
