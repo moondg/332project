@@ -279,7 +279,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
         stub.mergeData(request).onComplete {
           case Success(response) => {
-            if (response.isMergingSuccessful) {
+            if (response.isMergeSuccessful) {
               promise.success(())
             } else {
               promise.failure(new Exception("Merging failed"))

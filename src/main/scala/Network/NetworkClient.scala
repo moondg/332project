@@ -207,7 +207,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       }
     }
 
-// Wait for all futures to complete and collect results
+    // Wait for all futures to complete and collect results
     Future.sequence(processingFutures).onComplete {
       case Success(results) =>
         if (results.forall(_.isSuccess)) {
@@ -362,8 +362,24 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
   }
 
   override def mergeData(request: MergeRequest): Future[MergeResponse] = {
-    val response = MergeResponse(isMergeSuccessful = true)
-    Future.successful(response)
+    val promise = Promise[MergeResponse]()
+    
+    // TODO: Make Merging Future here
+    val processingFutures: Future[MergeResponse] = ???
+    
+    Future.sequence(processingFutures).onComplete {
+      case Success(results) =>
+        if (results.forall(_.isSuccess)) {
+          promise.success(MergeResponse(isMergeSuccessful = true))
+        } else {
+          val firstFailure = results.collectFirst { case Failure(e) => e }.get
+          promise.failure(firstFailure)
+        }
+      case Failure(exception) =>
+        promise.failure(exception)
+    }
+    
+    promise.future
   }
 
   override def verifyKeyRange(request: VerificationRequest): Future[VerificationResponse] = {
