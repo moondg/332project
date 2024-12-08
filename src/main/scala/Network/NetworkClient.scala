@@ -192,14 +192,16 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         val block = blockFromFile(filePath)
         logger.info(s"[Worker] ${fileName} start")
 
+        var postfix = 0
         try {
           for {
             (partition, node) <- dividePartition(block.block.sorted, keyRangeTable)
           } yield {
             var outFilePath = ""
-            if (node == thisClient)
-              outFilePath = s"${outputDir}/${Prefix.shuffling}_${thisClient._1}_${thisClient._2}"
-            else
+            if (node == thisClient) {
+              outFilePath = s"${outputDir}/${Prefix.shuffling}_${thisClient._1}_${postfix}"
+              postfix = postfix + 1
+            } else
               outFilePath =
                 s"${outputDir}/${node._1}:${node._2}_${stringHash(filePath)}_${fileName}"
             writeFile(outFilePath, partition)
