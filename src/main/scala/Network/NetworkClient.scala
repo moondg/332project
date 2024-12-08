@@ -358,6 +358,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         data = Some(emptyDataChunk(size)))
       responseObserver.onNext(emptyResponse)
       logger.info(s"[Worker] Send single partition to ${request.sourceIp}:${request.sourcePort}")
+      size = size + 1
     }
 
     // Send EOF
