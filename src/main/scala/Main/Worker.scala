@@ -52,7 +52,6 @@ object Worker extends Logging {
     try {
       network.start()
       network.connectToServer()
-      assert(workerFSM.getState() == WorkerConnectionEstablished)
 
       while (workerFSM.getState() != WorkerSentMergeResponse) {
         if (workerFSM.getState() == WorkerError) {
