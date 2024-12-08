@@ -10,7 +10,12 @@ object TournamentTree {
     def pick: Option[A]
     def initialize: Unit
   }
-  case class Leaf(filePath: String) extends Tree[Record] {
+  case class Leaf() extends Tree[Record] {
+    var value: Option[Record] = None
+    def pick: Option[Record] = None
+    def initialize: Unit = ()
+  }
+  case class Fruit(filePath: String) extends Tree[Record] {
     val source = Source.fromFile(filePath, "ISO8859-1")
     var value: Option[Record] = None
     def initialize = {
@@ -46,8 +51,8 @@ object TournamentTree {
 
   def gardener(leaves: List[String]): Tree[Record] = {
     leaves match {
-      case Nil => Leaf("src/test/resources/empty")
-      case head :: Nil => Leaf(head)
+      case Nil => Leaf()
+      case head :: Nil => Fruit(head)
       case _ => {
         val (left, right) = leaves splitAt (leaves.length / 2)
         Node(gardener(left), gardener(right))
