@@ -379,7 +379,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
 
     Future {
       val tempFilePaths = getAllFilePaths(List(outputDir))
-      val tournamentTree = new TournamentTree(tempFilePaths, outputDir)
+      val tournamentTree = new TournamentTree(tempFilePaths, outputDir ++ "/result")
       logger.info("[Worker] Merge Start")
       tournamentTree.merge()
     }.onComplete({
