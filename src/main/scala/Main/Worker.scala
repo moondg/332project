@@ -9,6 +9,8 @@ import java.net.InetAddress
 
 import Common._
 
+import org.apache.logging.log4j.scala.Logging
+
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
