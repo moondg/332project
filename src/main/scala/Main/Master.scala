@@ -13,11 +13,11 @@ object Master extends Logging {
     val numberOfWorkers = args(0).toInt
     val port = if (args.length == 1) 50075 else args(1).toInt
 
-    val masterFSM = MasterFSM(MasterInitial)
+    var masterFSM: MutableMasterFSM = new MutableMasterFSM(MasterInitial)
 
     // Run NetworkServer
     val networkServer =
-      new NetworkServer(port, numberOfWorkers, executionContext = ExecutionContext.global)
+      new NetworkServer(port, numberOfWorkers, masterFSM, executionContext = ExecutionContext.global)
 
     try {
       networkServer.start()
@@ -26,36 +26,56 @@ object Master extends Logging {
       // Block until networkServer.clientList's length is equal to numberOfWorkers
       while (networkServer.clients.length < numberOfWorkers) { Thread.sleep(1000) }
 
+      masterFSM.transition(MasterEventConnectionEstablished)
+      assert(masterFSM.getState() == MasterConnectionEstablished)
       logger.info("[Master] All workers connected")
+
       networkServer.ipLogging()
       networkServer.createChannels()
 
       // Sampling Phase
+      masterFSM.transition(MasterEventProceedSampling)
+      assert(masterFSM.getState() == MasterSendingMergeRequest)
       logger.info("[Master] Sampling Phase")
+      logger.info("[Master] Sending sampling request")
       networkServer.requestSampling()
+      assert(masterFSM.getState() == MasterReceivedSampleResponse)
 
       // Partitioning Phase
+      masterFSM.transition(MasterEventMakePartition)
+      assert(masterFSM.getState() == MasterMakingPartition)
       logger.info("[Master] Partitioning Phase")
       logger.info("[Master] Sending partitioning request")
       networkServer.requestPartitioning()
+      assert(masterFSM.getState() == MasterReceivedPartitionResponse)
 
       // Shuffling Phase
+      masterFSM.transition(MasterEventProceedShuffling)
+      assert(masterFSM.getState() == MasterSendingShuffleRequest)
       logger.info("[Master] Shuffling Phase")
       logger.info("[Master] Sending shuffling request")
       networkServer.requestShuffling()
+      assert(masterFSM.getState() == MasterReceivedShuffleResponse)
+
 
       // Merging Phase
+      masterFSM.transition(MasterEventProceedMerging)
+      assert(masterFSM.getState() == MasterSendingMergeRequest)
       logger.info("[Master] Merging Phase")
       logger.info("[Master] Sending merging request")
       networkServer.requestMerging()
-      
+      assert(masterFSM.getState() == MasterReceivedMergeResponse)
+
       // Verification Phase
       // logger.info("[Master] Verification Phase")
       // logger.info("[Master] Sending verification request")
       // networkServer.requestVerification()
 
     } catch {
-      case except: Exception => logger.error(except)
+      case except: Exception => {
+        masterFSM.transition(MasterEventError)
+        logger.error(except)
+      }
     } finally {
       networkServer.stop()
     }

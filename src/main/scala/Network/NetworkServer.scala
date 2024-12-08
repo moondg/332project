@@ -46,11 +46,11 @@ object Network {
   type Node = (IPAddr, Port)
 }
 
-class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: ExecutionContext)
+class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM, executionContext: ExecutionContext)
     extends Logging {
 
   var server: Server = null
-  var state: MasterState = MasterInitial
+
   var clients: ListBuffer[Node] = ListBuffer.empty
   var sample: List[Key] = List.empty[Key]
 
@@ -68,7 +68,6 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   def stop(): Unit = {
     if (server != null) {
       server.shutdown.awaitTermination(1, TimeUnit.SECONDS)
-      state = MasterFinished
     }
   }
 
@@ -86,12 +85,20 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
   def requestSampling(): Unit = {
 
+    assert(masterFSM.getState() == MasterSendingSampleRequest)
+
     // Perform this to each worker
     val responses: Seq[Future[List[Key]]] = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
         val request =
           SampleRequest(workerIp = client._1, workerPort = client._2, percentageOfSampling = 1)
 
+        // Transition should be done only once
+        if (masterFSM.getState() != MasterPendingSampleResponse) {
+          masterFSM.transition(MasterEventSendSampleRequest)
+        }
+        assert (masterFSM.getState() == MasterPendingSampleResponse)
+          
         val promise = Promise[List[Key]]()
         val buffer = ListBuffer.empty[Key]
         var haveReachedEOF = false
@@ -108,19 +115,23 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
                     buffer += new Key(dataChunk.data.toByteArray)
                   }
                 }
-              case None => onError(new Exception("Received empty data chunk"))
+              case None => {
+                masterFSM.transition(MasterEventReceiveSampleResponseFailure)
+                onError(new Exception("Received empty data chunk"))
+              }
             }
           }
 
           override def onError(t: Throwable): Unit = {
+            masterFSM.transition(MasterEventReceiveSampleResponseFailure)
             promise.failure(t)
           }
 
           override def onCompleted(): Unit = {
             if (haveReachedEOF) {
-              //
               promise.success(buffer.toList)
             } else {
+              masterFSM.transition(MasterEventReceiveSampleResponseFailure)
               promise.failure(new Exception("Did not receive EOF"))
             }
           }
@@ -135,11 +146,14 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     try {
       val allResponses = Await.result(Future.sequence(responses), Duration.Inf)
       sample = allResponses.flatten.toList
+
+      masterFSM.transition(MasterEventReceiveSampleResponse)
+      assert(masterFSM.getState() == MasterReceivedSampleResponse)
       logger.info(s"Number of samples: ${sample.length}")
 
     } catch {
       case e: Exception => {
-        state = MasterReceivedSampleResponseFailure
+        masterFSM.transition(MasterEventReceiveSampleResponseFailure)
         logger.error(s"Failed to receive sample data: ${e.getMessage}")
       }
     }
@@ -150,7 +164,13 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
   }
 
   def requestPartitioning(): Unit = {
+    
+    assert(masterFSM.getState() == MasterMakingPartition)    
     val table = createTable()
+    masterFSM.transition(MasterEventMadePartition)
+    assert(masterFSM.getState() == MasterSendingPartitionRequest)
+    logger.info("[Master] Made Partition table")
+
     lazy val tableProto: KeyRangeTable = {
       val rows = for {
         (keyRange, node) <- table
@@ -170,6 +190,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
           workerIp = client._1,
           workerPort = client._2,
           table = Option(tableProto))
+        
+        if (masterFSM.getState() != MasterPendingPartitionResponse) {
+          masterFSM.transition(MasterEventSendPartitionRequest)
+        }
+        assert(masterFSM.getState() == MasterPendingPartitionResponse)
+
         stub.partitionData(request).onComplete {
           case Success(response) => {
             if (response.isPartitioningSuccessful) {
@@ -187,10 +213,11 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
     try {
       Await.result(Future.sequence(responses), Duration.Inf)
-      state = MasterReceivedPartitionResponse
+      masterFSM.transition(MasterEventReceivePartitionResponse)
+      assert(masterFSM.getState() == MasterReceivedPartitionResponse)
     } catch {
       case e: Exception => {
-        state = MasterReceivedPartitionResponseFailure
+        masterFSM.transition(MasterEventReceivePartitionResponseFailure)
         logger.info(s"Failed to receive partition data: ${e.getMessage}")
       }
     }
@@ -246,21 +273,28 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
     try {
       Await.result(Future.sequence(responses), Duration.Inf)
-      state = MasterReceivedShuffleResponse
+      
     } catch {
       case e: Exception => {
-        state = MasterReceivedShuffleResponseFailure
+      
         logger.info(s"Failed to shuffle data: ${e.getMessage}")
       }
     }
   }
 
   def requestMerging(): Unit = {
+    assert (masterFSM.getState() == MasterSendingMergeRequest)
+
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
         val promise = Promise[Unit]()
 
         val request = MergeRequest(workerIp = client._1, workerPort = client._2)
+
+        if (masterFSM.getState() != MasterPendingMergeResponse) {
+          masterFSM.transition(MasterEventSendMergeRequest)
+        }
+        assert(masterFSM.getState() == MasterPendingMergeResponse)
 
         stub.mergeData(request).onComplete {
           case Success(response) => {
@@ -279,10 +313,13 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
 
     try {
       Await.result(Future.sequence(responses), Duration.Inf)
-      state = MasterReceivedMergeResponse
+
+      masterFSM.transition(MasterEventReceiveMergeResponse)
+      assert(masterFSM.getState() == MasterReceivedMergeResponse)
+
     } catch {
       case e: Exception => {
-        state = MasterReceivedMergeResponseFailure
+        masterFSM.transition(MasterEventReceiveMergeResponseFailure)
         logger.info(s"Failed to merge data: ${e.getMessage}")
       }
     }

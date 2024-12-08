@@ -136,7 +136,7 @@ case object MasterEventVerificationInterWorkerFailure extends MasterEvent
 
 // Events of Common
 case object MasterEventFinishSorting extends MasterEvent
-
+case object MasterEventError extends MasterEvent
 // Events of Worker
 sealed trait WorkerEvent
 
@@ -621,4 +621,20 @@ case class WorkerFSM(state: WorkerState, isVerificationNeeded: Boolean = false) 
       case _ => WorkerFSM(WorkerError, isVerificationNeeded)
     }
   }
+}
+
+class MutableMasterFSM(state: MasterState, isVerificationNeeded: Boolean = false) {
+  private var masterFSM: MasterFSM = MasterFSM(state, isVerificationNeeded)
+
+  def getState(): MasterState = masterFSM.getState()
+
+  def transition(event: MasterEvent): Unit = { masterFSM = masterFSM.transition(event) }
+}
+
+class MutableWorkerFSM(state: WorkerState, isVerificationNeeded: Boolean = false) {
+  private var workerFSM: WorkerFSM = WorkerFSM(state, isVerificationNeeded)
+
+  def getState(): WorkerState = workerFSM.getState()
+
+  def transition(event: WorkerEvent): Unit = { workerFSM = workerFSM.transition(event) }
 }
