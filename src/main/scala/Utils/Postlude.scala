@@ -6,6 +6,9 @@ import Core.Key._
 
 import scala.annotation.tailrec
 import java.io.{File, FileOutputStream}
+import message.common.DataChunk
+import com.google.protobuf.ByteString
+import Network.Network.Node
 
 object Postlude {
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
@@ -65,5 +68,8 @@ object Postlude {
     fileWriter.close()
 
     counter
+  }
+  def emptyDataChunk(index: Int): DataChunk = {
+    DataChunk(data = ByteString.EMPTY, chunkIndex = index, isEOF = true)
   }
 }

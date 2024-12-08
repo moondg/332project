@@ -17,7 +17,7 @@ service WorkerService {
     rpc SampleData (SampleRequest) returns (stream SampleResponse);
     rpc PartitionData (PartitionRequest) returns (PartitionResponse);
     rpc RunShuffle (ShuffleRunRequest) returns (ShuffleRunResponse);
-    rpc ExchangeData (ShuffleExchangeRequest) returns (ShuffleExchangeResponse);
+    rpc ExchangeData (ShuffleExchangeRequest) returns (stream ShuffleExchangeResponse);
     rpc MergeData (MergeRequest) returns (MergeResponse);
     rpc VerifyKeyRange (VerificationRequest) returns (VerificationResponse);
 }

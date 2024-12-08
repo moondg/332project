@@ -7,7 +7,7 @@ import "common.proto";
 // Master -> Worker
 message ShuffleRunRequest {
     string workerIp = 1;
-    string workerPort = 2;
+    int32 workerPort = 2;
 }
 
 // Worker -> Master
@@ -32,5 +32,5 @@ message ShuffleExchangeResponse {
     string destinationIp = 3;
     int32 destinationPort = 4;
 
-    repeated DataChunk data = 5;
+    DataChunk data = 5;
 }
