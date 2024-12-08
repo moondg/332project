@@ -254,6 +254,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       var haveReachedEOF = false
 
       var fileIdRef = 0
+      var fileLength = 0
       val outFilePath = s"${outputDir}/${Prefix.shuffling}_${client._1}_"
       var file = new File(outFilePath + fileIdRef.toString)
       var fileWriter = new FileOutputStream(file, file.exists())
@@ -270,10 +271,13 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
               val record = Record.recordFrom(dataChunk.data.toByteArray)
               haveReachedEOF = dataChunk.isEOF
               if (!haveReachedEOF) {
+                fileLength += 1
                 fileWriter.write(record.raw)
               } else {
                 fileIdRef += 1
                 fileWriter.close()
+                if (fileLength == 0) file.delete()
+                fileLength = 0
                 file = new File(outFilePath + fileIdRef.toString)
                 fileWriter = new FileOutputStream(file, file.exists())
               }
