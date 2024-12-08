@@ -104,7 +104,7 @@ class NetworkClient(
         workerFSM.transition(WorkerEventConnectionEstablished)
         assert(workerFSM.getState() == WorkerConnectionEstablished)
         logger.info("[Worker] Connection established")
-        
+
       } else {
         workerFSM.transition(WorkerEventError)
         logger.info("[Worker] Connection failed")
@@ -129,10 +129,10 @@ class NetworkClient(
 }
 
 class ClientImpl(
-  inputDirs: List[String], 
-  outputDir: String, 
-  workerFSM: MutableWorkerFSM,
-  thisClient: Node)
+    inputDirs: List[String],
+    outputDir: String,
+    workerFSM: MutableWorkerFSM,
+    thisClient: Node)
     extends WorkerServiceGrpc.WorkerService
     with Logging {
 
@@ -145,10 +145,10 @@ class ClientImpl(
   override def sampleData(
       request: SampleRequest,
       responseObserver: StreamObserver[SampleResponse]): Unit = {
-    
+
     assert(workerFSM.getState() == WorkerConnectionEstablished)
     workerFSM.transition(WorkerEventReceiveSampleRequest)
-    assert (workerFSM.getState() == WorkerReceivedSampleRequest)
+    assert(workerFSM.getState() == WorkerReceivedSampleRequest)
     logger.info("[Worker] Sample request received")
 
     val percentageOfSampling = request.percentageOfSampling
@@ -175,12 +175,12 @@ class ClientImpl(
       SampleResponse(isSamplingSuccessful = true, sample = Some(emptyDataChunk(index)))
     responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
-    
+
     workerFSM.transition(WorkerEventSendSampleResponseComplete)
     assert(workerFSM.getState() == WorkerSentSampleResponse)
     logger.info("[Worker] End sending samples")
     workerFSM.transition(WorkerEventProceedPartitioning)
-    assert(workerFSM.getState() == WorkerProceedPartitioning)
+    assert(workerFSM.getState() == WorkerPendingPartitionRequest)
 
   }
 
@@ -217,7 +217,7 @@ class ClientImpl(
     }
 
     workerFSM.transition(WorkerEventPartitionData)
-    assert (workerFSM.getState() == WorkerPartitioningData)
+    assert(workerFSM.getState() == WorkerPartitioningData)
 
     val promise = Promise[PartitionResponse]()
     logger.info("[Worker] Partition Start")
@@ -227,7 +227,7 @@ class ClientImpl(
         val block = blockFromFile(filePath)
         logger.info(s"[Worker] ${fileName} start")
 
-        if (workerFSM.getState() != WorkerSendPartitionResponse){
+        if (workerFSM.getState() != WorkerSendingPartitionResponse) {
           workerFSM.transition(WorkerEventSendPartitionResponse)
         }
 
@@ -404,7 +404,7 @@ class ClientImpl(
 
     logger.info(
       s"[Worker] Received exchange request from ${request.sourceIp}:${request.sourcePort}")
-    
+
     var size = 0
     val exchangeFileNames = getFileNames(outputDir)
       .filter(s => (s takeWhile (_ != '_')) == s"${request.sourceIp}:${request.sourcePort}")
@@ -448,12 +448,12 @@ class ClientImpl(
     responseObserver.onNext(emptyResponse)
     responseObserver.onCompleted()
     logger.info(s"[Worker] Finished sending data to ${request.sourceIp}:${request.sourcePort}")
-  
+
     sendCompleteCount += 1
   }
 
   override def mergeData(request: MergeRequest): Future[MergeResponse] = {
-    
+
     assert(workerFSM.getState() == WorkerPendingMergeRequest)
 
     workerFSM.transition(WorkerEventReceiveMergeRequest)
@@ -476,7 +476,7 @@ class ClientImpl(
     }.onComplete({
       case Success(value) => {
         workerFSM.transition(WorkerEventCompleteMerging)
-        assert(workerFSM.getState() == WorkerMergingComplete)        
+        assert(workerFSM.getState() == WorkerMergingComplete)
         logger.info("[Worker] Merge Complete")
         val response = MergeResponse(isMergeSuccessful = true)
 
