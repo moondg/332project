@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext
 import Utils.Prelude._
 import Utils.Postlude._
 
-object Worker {
+object Worker extends Logging {
   def main(args: Array[String]): Unit = {
     val argsFormat =
       "worker [master IP:port] -I [input directory] [input directory] … [input directory] -O [output directory]"
@@ -51,7 +51,7 @@ object Worker {
       network.start()
       network.connectToServer()
       assert(workerFSM.getState() == WorkerConnectionEstablished)
-      
+
       while (workerFSM.getState() != WorkerSentMergeResponse) {
         if (workerFSM.getState() == WorkerError) {
           throw new Exception("Worker error")
