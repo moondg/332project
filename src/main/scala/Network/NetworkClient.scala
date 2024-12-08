@@ -131,7 +131,7 @@ class NetworkClient(
   }
 
   def isMergeComplete(): Boolean = {
-    return clientService.isMergeComplete  
+    return clientService.isMergeComplete
   }
 }
 
@@ -496,6 +496,7 @@ class ClientImpl(
         workerFSM.transition(WorkerEventSendMergeResponse)
         // assert(workerFSM.getState() == WorkerSendingMergeResponse)
         logger.info("[Worker] Sending merge response")
+        isMergeComplete = true
         promise.success(response)
       }
       case Failure(exception) => {
@@ -509,8 +510,6 @@ class ClientImpl(
     workerFSM.transition(WorkerEventSendMergeResponseComplete)
     // assert(workerFSM.getState() == WorkerSentMergeResponse)
     logger.info("[Worker] Sent merge response")
-
-    isMergeComplete = true
 
     promise.future
   }
