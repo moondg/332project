@@ -250,11 +250,18 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
   }
 
   def requestShuffling(): Unit = {
+    assert(masterFSM.getState() == MasterSendingShuffleRequest)
+
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
         val promise = Promise[Unit]()
 
         val request = ShuffleRunRequest(workerIp = client._1, workerPort = client._2)
+
+        if (masterFSM.getState() != MasterPendingShuffleResponse) {
+          masterFSM.transition(MasterEventSendShuffleRequest)
+        }
+        assert(masterFSM.getState() == MasterPendingShuffleResponse)
 
         stub.runShuffle(request).onComplete {
           case Success(response) => {
@@ -273,10 +280,12 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
 
     try {
       Await.result(Future.sequence(responses), Duration.Inf)
-      
+      masterFSM.transition(MasterEventReceiveShuffleResponse)
+      assert(masterFSM.getState() == MasterReceivedShuffleResponse)
+
     } catch {
       case e: Exception => {
-      
+        masterFSM.transition(MasterEventReceiveShuffleResponseFailure)
         logger.info(s"Failed to shuffle data: ${e.getMessage}")
       }
     }
