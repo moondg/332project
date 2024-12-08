@@ -439,6 +439,7 @@ class ClientImpl(
               data = Some(dataChunk))
 
             responseObserver.onNext(response)
+            Thread.sleep(1)
           }
       val emptyResponse = ShuffleExchangeResponse(
         sourceIp = request.destinationIp,
