@@ -10,6 +10,7 @@ import java.io.{File, FileOutputStream}
 import com.google.protobuf.ByteString
 import Network.Network.Node
 import Utils.Prelude.getFileNames
+import message.common.DataChunk
 
 object Postlude {
   def kWayMerge(tempFiles: List[String], outputFilePath: String): Int = {
