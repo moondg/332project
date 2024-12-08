@@ -197,7 +197,9 @@ class NetworkServer(
 
         if (masterFSM.getState() != MasterPendingPartitionResponse) {
           masterFSM.transition(MasterEventSendPartitionRequest)
+          logger.info("[Master] Sending partition requests")
         }
+
         assert(masterFSM.getState() == MasterPendingPartitionResponse)
 
         stub.partitionData(request).onComplete {
