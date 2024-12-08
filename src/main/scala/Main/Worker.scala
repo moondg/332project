@@ -7,6 +7,8 @@ import Network.Network.{IPAddr, Port, Node}
 
 import java.net.InetAddress
 
+import Common._
+
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
@@ -33,6 +35,8 @@ object Worker {
     val client: Node = (getIPAddr(), getPort())
     val inputDirs: List[String] = inputDirParse(args.toList)
     val outputDir: String = args.last
+
+    val workerFSM = WorkerFSM(WorkerInitial)
 
     val network = new NetworkClient(
       master,

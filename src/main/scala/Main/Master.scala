@@ -1,6 +1,7 @@
 import Network.NetworkServer
 import scala.concurrent.ExecutionContext
 import Core.Table._
+import Common._
 import org.apache.logging.log4j.scala.Logging
 
 object Master extends Logging {
@@ -11,6 +12,8 @@ object Master extends Logging {
     require(args.length == 1 || args.length == 2, argsFormat)
     val numberOfWorkers = args(0).toInt
     val port = if (args.length == 1) 50075 else args(1).toInt
+
+    val masterFSM = MasterFSM(MasterInitial)
 
     // Run NetworkServer
     val networkServer =
@@ -45,7 +48,7 @@ object Master extends Logging {
       // logger.info("[Master] Merging Phase")
       // logger.info("[Master] Sending merging request")
       // networkServer.requestMerging()
-      
+
       // Verification Phase
       // logger.info("[Master] Verification Phase")
       // logger.info("[Master] Sending verification request")
