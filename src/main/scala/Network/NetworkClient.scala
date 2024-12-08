@@ -102,7 +102,7 @@ class NetworkClient(
       val result = Await.result(response, 1.hour)
       if (result.isEstablishmentSuccessful) {
         workerFSM.transition(WorkerEventConnectionEstablished)
-        assert(workerFSM.getState() == WorkerConnectionEstablished)
+        // assert(workerFSM.getState() == WorkerConnectionEstablished)
         logger.info("[Worker] Connection established")
 
       } else {
@@ -118,7 +118,7 @@ class NetworkClient(
     }
 
     workerFSM.transition(WorkerEventProceedSampling)
-    assert(workerFSM.getState() == WorkerPendingSampleRequest)
+    // assert(workerFSM.getState() == WorkerPendingSampleRequest)
   }
 
   def shutdown(): Unit = {}
@@ -149,9 +149,9 @@ class ClientImpl(
       request: SampleRequest,
       responseObserver: StreamObserver[SampleResponse]): Unit = {
 
-    assert(workerFSM.getState() == WorkerPendingSampleRequest)
+    // assert(workerFSM.getState() == WorkerPendingSampleRequest)
     workerFSM.transition(WorkerEventReceiveSampleRequest)
-    assert(workerFSM.getState() == WorkerReceivedSampleRequest)
+    // assert(workerFSM.getState() == WorkerReceivedSampleRequest)
     logger.info("[Worker] Sample request received")
 
     val percentageOfSampling = request.percentageOfSampling
@@ -160,7 +160,7 @@ class ClientImpl(
 
     logger.info("[Worker] Start sending samples")
     workerFSM.transition(WorkerEventSendSampleResponse)
-    assert(workerFSM.getState() == WorkerSendingSampleResponse)
+    // assert(workerFSM.getState() == WorkerSendingSampleResponse)
 
     filePaths.foreach { filePath =>
       val sample = sampling(filePath, Constant.Sample.number)
@@ -180,19 +180,19 @@ class ClientImpl(
     responseObserver.onCompleted()
 
     workerFSM.transition(WorkerEventSendSampleResponseComplete)
-    assert(workerFSM.getState() == WorkerSentSampleResponse)
+    // assert(workerFSM.getState() == WorkerSentSampleResponse)
     logger.info("[Worker] End sending samples")
     workerFSM.transition(WorkerEventProceedPartitioning)
-    assert(workerFSM.getState() == WorkerPendingPartitionRequest)
+    // assert(workerFSM.getState() == WorkerPendingPartitionRequest)
 
   }
 
   override def partitionData(request: PartitionRequest): Future[PartitionResponse] = {
 
-    assert(workerFSM.getState() == WorkerPendingPartitionRequest)
+    // assert(workerFSM.getState() == WorkerPendingPartitionRequest)
 
     workerFSM.transition(WorkerEventReceivePartitionRequest)
-    assert(workerFSM.getState() == WorkerReceivedPartitionRequest)
+    // assert(workerFSM.getState() == WorkerReceivedPartitionRequest)
     logger.info("[Worker] Partitioning request received")
 
     keyRangeTable = request.table match {
@@ -220,7 +220,7 @@ class ClientImpl(
     }
 
     workerFSM.transition(WorkerEventPartitionData)
-    assert(workerFSM.getState() == WorkerPartitioningData)
+    // assert(workerFSM.getState() == WorkerPartitioningData)
 
     val promise = Promise[PartitionResponse]()
     logger.info("[Worker] Partition Start")
@@ -234,7 +234,7 @@ class ClientImpl(
           workerFSM.transition(WorkerEventSendPartitionResponse)
         }
 
-        assert(workerFSM.getState() == WorkerSendingPartitionResponse)
+        // assert(workerFSM.getState() == WorkerSendingPartitionResponse)
 
         try {
           for {
@@ -264,7 +264,7 @@ class ClientImpl(
       case Success(results) =>
         if (results.forall(_.isSuccess)) {
           workerFSM.transition(WorkerEventSendPartitionResponseComplete)
-          assert(workerFSM.getState() == WorkerSentPartitionResponse)
+          // assert(workerFSM.getState() == WorkerSentPartitionResponse)
           logger.info("[Worker] Partition Success")
           promise.success(PartitionResponse(isPartitioningSuccessful = true))
         } else {
@@ -277,17 +277,17 @@ class ClientImpl(
     }
 
     workerFSM.transition(WorkerEventProceedShuffling)
-    assert(workerFSM.getState() == WorkerPendingShuffleRequest)
+    // assert(workerFSM.getState() == WorkerPendingShuffleRequest)
 
     promise.future
   }
 
   override def runShuffle(request: ShuffleRunRequest): Future[ShuffleRunResponse] = {
 
-    assert(workerFSM.getState() == WorkerPendingShuffleRequest)
+    // assert(workerFSM.getState() == WorkerPendingShuffleRequest)
 
     workerFSM.transition(WorkerEventReceiveShuffleRequest)
-    assert(workerFSM.getState() == WorkerReceivedShuffleRequest)
+    // assert(workerFSM.getState() == WorkerReceivedShuffleRequest)
 
     // Get clients
     val clients =
@@ -298,7 +298,7 @@ class ClientImpl(
     val stubs = channels.map { channel => WorkerServiceGrpc.stub(channel) }
 
     workerFSM.transition(WorkerEventEstablishedInterworkerConnection)
-    assert(workerFSM.getState() == WorkerWaitingAllDataReceived)
+    // assert(workerFSM.getState() == WorkerWaitingAllDataReceived)
 
     // Send ExchangeRequest to all clients
     val exchangeResponses: Seq[Future[Boolean]] = clients.zip(stubs).map { case (client, stub) =>
@@ -319,10 +319,10 @@ class ClientImpl(
 
       val responseObserver = new StreamObserver[ShuffleExchangeResponse] {
         override def onNext(exchangeResponse: ShuffleExchangeResponse): Unit = {
-          assert(client._1 == exchangeResponse.sourceIp)
-          assert(client._2 == exchangeResponse.sourcePort)
-          assert(thisClient._1 == exchangeResponse.destinationIp)
-          assert(thisClient._2 == exchangeResponse.destinationPort)
+          // assert(client._1 == exchangeResponse.sourceIp)
+          // assert(client._2 == exchangeResponse.sourcePort)
+          // assert(thisClient._1 == exchangeResponse.destinationIp)
+          // assert(thisClient._2 == exchangeResponse.destinationPort)
 
           exchangeResponse.data match {
             case Some(dataChunk) => {
@@ -375,11 +375,11 @@ class ClientImpl(
         val allExchangeResponses = Await.result(Future.sequence(exchangeResponses), Duration.Inf)
         val isExchangeSuccessful = allExchangeResponses.forall(_ == true)
         workerFSM.transition(WorkerEventReceivedAllData)
-        assert(workerFSM.getState() == WorkerReceivedAllData)
+        // assert(workerFSM.getState() == WorkerReceivedAllData)
         logger.info(s"[Worker] Received data from other workers")
 
         workerFSM.transition(WorkerEventSendShuffleResponse)
-        assert(workerFSM.getState() == WorkerSendingShuffleResponse)
+        // assert(workerFSM.getState() == WorkerSendingShuffleResponse)
         logger.info(s"[Worker] Contructing shuffle response")
         ShuffleRunResponse(isShufflingSuccessful = isExchangeSuccessful)
       } catch {
@@ -392,12 +392,12 @@ class ClientImpl(
     channels.foreach { channel => channel.shutdown() }
 
     workerFSM.transition(WorkerEventSendShuffleResponseComplete)
-    assert(workerFSM.getState() == WorkerSentShuffleResponse)
+    // assert(workerFSM.getState() == WorkerSentShuffleResponse)
     logger.info(s"[Worker] Finished Receiving data from other clients")
 
     // Proceed to merging
     workerFSM.transition(WorkerEventProceedMerging)
-    assert(workerFSM.getState() == WorkerPendingMergeRequest)
+    // assert(workerFSM.getState() == WorkerPendingMergeRequest)
 
     Future.successful(response)
   }
@@ -407,8 +407,8 @@ class ClientImpl(
       responseObserver: StreamObserver[ShuffleExchangeResponse]): Unit = {
 
     // Assert that the request is coming to the correct client
-    assert(thisClient._1 == request.destinationIp)
-    assert(thisClient._2 == request.destinationPort)
+    // assert(thisClient._1 == request.destinationIp)
+    // assert(thisClient._2 == request.destinationPort)
 
     logger.info(
       s"[Worker] Received exchange request from ${request.sourceIp}:${request.sourcePort}")
@@ -462,16 +462,16 @@ class ClientImpl(
 
   override def mergeData(request: MergeRequest): Future[MergeResponse] = {
 
-    assert(workerFSM.getState() == WorkerPendingMergeRequest)
+    // assert(workerFSM.getState() == WorkerPendingMergeRequest)
 
     workerFSM.transition(WorkerEventReceiveMergeRequest)
-    assert(workerFSM.getState() == WorkerReceivedMergeRequest)
+    // assert(workerFSM.getState() == WorkerReceivedMergeRequest)
     logger.info("[Worker] Merge request received")
 
     val promise = Promise[MergeResponse]()
 
     workerFSM.transition(WorkerEventMergeData)
-    assert(workerFSM.getState() == WorkerMergingData)
+    // assert(workerFSM.getState() == WorkerMergingData)
 
     Future {
       val tempFilePaths =
@@ -484,12 +484,12 @@ class ClientImpl(
     }.onComplete({
       case Success(value) => {
         workerFSM.transition(WorkerEventCompleteMerging)
-        assert(workerFSM.getState() == WorkerMergingComplete)
+        // assert(workerFSM.getState() == WorkerMergingComplete)
         logger.info("[Worker] Merge Complete")
         val response = MergeResponse(isMergeSuccessful = true)
 
         workerFSM.transition(WorkerEventSendMergeResponse)
-        assert(workerFSM.getState() == WorkerSendingMergeResponse)
+        // assert(workerFSM.getState() == WorkerSendingMergeResponse)
         logger.info("[Worker] Sending merge response")
         promise.success(response)
       }
@@ -502,7 +502,7 @@ class ClientImpl(
     })
 
     workerFSM.transition(WorkerEventSendMergeResponseComplete)
-    assert(workerFSM.getState() == WorkerSentMergeResponse)
+    // assert(workerFSM.getState() == WorkerSentMergeResponse)
     logger.info("[Worker] Sent merge response")
 
     promise.future

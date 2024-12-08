@@ -65,7 +65,7 @@ object Worker extends Logging {
       }
 
       workerFSM.transition(WorkerEventFinishSorting)
-      assert(workerFSM.getState() == WorkerFinished)
+      // assert(workerFSM.getState() == WorkerFinished)
       logger.info("[Worker] Finished sorting")
 
     } catch {

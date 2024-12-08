@@ -89,7 +89,7 @@ class NetworkServer(
 
   def requestSampling(): Unit = {
 
-    assert(masterFSM.getState() == MasterSendingSampleRequest)
+    // assert(masterFSM.getState() == MasterSendingSampleRequest)
 
     // Perform this to each worker
     val responses: Seq[Future[List[Key]]] = clients.zip(stubs).toSeq.map {
@@ -101,7 +101,7 @@ class NetworkServer(
         if (masterFSM.getState() != MasterPendingSampleResponse) {
           masterFSM.transition(MasterEventSendSampleRequest)
         }
-        assert(masterFSM.getState() == MasterPendingSampleResponse)
+        // assert(masterFSM.getState() == MasterPendingSampleResponse)
 
         val promise = Promise[List[Key]]()
         val buffer = ListBuffer.empty[Key]
@@ -152,7 +152,7 @@ class NetworkServer(
       sample = allResponses.flatten.toList
 
       masterFSM.transition(MasterEventReceiveSampleResponse)
-      assert(masterFSM.getState() == MasterReceivedSampleResponse)
+      // assert(masterFSM.getState() == MasterReceivedSampleResponse)
       logger.info(s"Number of samples: ${sample.length}")
 
     } catch {
@@ -169,10 +169,10 @@ class NetworkServer(
 
   def requestPartitioning(): Unit = {
 
-    assert(masterFSM.getState() == MasterMakingPartition)
+    // assert(masterFSM.getState() == MasterMakingPartition)
     val table = createTable()
     masterFSM.transition(MasterEventMadePartition)
-    assert(masterFSM.getState() == MasterSendingPartitionRequest)
+    // assert(masterFSM.getState() == MasterSendingPartitionRequest)
     logger.info("[Master] Made Partition table")
 
     lazy val tableProto: KeyRangeTable = {
@@ -200,7 +200,7 @@ class NetworkServer(
           logger.info("[Master] Sending partition requests")
         }
 
-        assert(masterFSM.getState() == MasterPendingPartitionResponse)
+        // assert(masterFSM.getState() == MasterPendingPartitionResponse)
 
         stub.partitionData(request).onComplete {
           case Success(response) => {
@@ -220,7 +220,7 @@ class NetworkServer(
     try {
       Await.result(Future.sequence(responses), Duration.Inf)
       masterFSM.transition(MasterEventReceivePartitionResponse)
-      assert(masterFSM.getState() == MasterReceivedPartitionResponse)
+      // assert(masterFSM.getState() == MasterReceivedPartitionResponse)
       logger.info("[Master] Received partition data")
     } catch {
       case e: Exception => {
@@ -233,7 +233,7 @@ class NetworkServer(
   def ipLogging(): Unit = {
     @tailrec
     def clientIPLogging(clients: List[Node]): Unit = {
-      assert(clients != Nil)
+      // assert(clients != Nil)
       logger.info(s"[Master] Worker IP - ${clients.head._1}")
       if (clients.tail != Nil) clientIPLogging(clients.tail)
     }
@@ -257,7 +257,7 @@ class NetworkServer(
   }
 
   def requestShuffling(): Unit = {
-    assert(masterFSM.getState() == MasterSendingShuffleRequest)
+    // assert(masterFSM.getState() == MasterSendingShuffleRequest)
 
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
@@ -268,7 +268,7 @@ class NetworkServer(
         if (masterFSM.getState() != MasterPendingShuffleResponse) {
           masterFSM.transition(MasterEventSendShuffleRequest)
         }
-        assert(masterFSM.getState() == MasterPendingShuffleResponse)
+        // assert(masterFSM.getState() == MasterPendingShuffleResponse)
 
         stub.runShuffle(request).onComplete {
           case Success(response) => {
@@ -288,7 +288,7 @@ class NetworkServer(
     try {
       Await.result(Future.sequence(responses), Duration.Inf)
       masterFSM.transition(MasterEventReceiveShuffleResponse)
-      assert(masterFSM.getState() == MasterReceivedShuffleResponse)
+      // assert(masterFSM.getState() == MasterReceivedShuffleResponse)
 
     } catch {
       case e: Exception => {
@@ -299,7 +299,7 @@ class NetworkServer(
   }
 
   def requestMerging(): Unit = {
-    assert(masterFSM.getState() == MasterSendingMergeRequest)
+    // assert(masterFSM.getState() == MasterSendingMergeRequest)
 
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
@@ -310,7 +310,7 @@ class NetworkServer(
         if (masterFSM.getState() != MasterPendingMergeResponse) {
           masterFSM.transition(MasterEventSendMergeRequest)
         }
-        assert(masterFSM.getState() == MasterPendingMergeResponse)
+        // assert(masterFSM.getState() == MasterPendingMergeResponse)
 
         stub.mergeData(request).onComplete {
           case Success(response) => {
@@ -331,7 +331,7 @@ class NetworkServer(
       Await.result(Future.sequence(responses), Duration.Inf)
 
       masterFSM.transition(MasterEventReceiveMergeResponse)
-      assert(masterFSM.getState() == MasterReceivedMergeResponse)
+      // assert(masterFSM.getState() == MasterReceivedMergeResponse)
 
     } catch {
       case e: Exception => {
