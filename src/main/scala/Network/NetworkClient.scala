@@ -211,8 +211,10 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
     Future.sequence(processingFutures).onComplete {
       case Success(results) =>
         if (results.forall(_.isSuccess)) {
+          logger.info("[Worker] Partition Success")
           promise.success(PartitionResponse(isPartitioningSuccessful = true))
         } else {
+          logger.info("[Worker] Partition Failed")
           val firstFailure = results.collectFirst { case Failure(e) => e }.get
           promise.failure(firstFailure)
         }
