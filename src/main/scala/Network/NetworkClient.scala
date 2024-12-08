@@ -129,6 +129,10 @@ class NetworkClient(
   def isSendingDataComplete(): Boolean = {
     return clientService.sendCompleteCount == channelToWorkers.length
   }
+
+  def isMergeComplete(): Boolean = {
+    return clientService.isMergeComplete  
+  }
 }
 
 class ClientImpl(
@@ -142,6 +146,7 @@ class ClientImpl(
   val fileNames = inputDirs.map(getFileNames).flatten
   val filePaths = getAllFilePaths(inputDirs)
 
+  var isMergeComplete: Boolean = false
   var keyRangeTable: Table = null
   var sendCompleteCount: Int = 0
 
@@ -504,6 +509,8 @@ class ClientImpl(
     workerFSM.transition(WorkerEventSendMergeResponseComplete)
     // assert(workerFSM.getState() == WorkerSentMergeResponse)
     logger.info("[Worker] Sent merge response")
+
+    isMergeComplete = true
 
     promise.future
   }

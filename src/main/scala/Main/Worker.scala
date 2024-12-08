@@ -53,15 +53,8 @@ object Worker extends Logging {
       network.start()
       network.connectToServer()
 
-      while (workerFSM.getState() != WorkerSentMergeResponse) {
-        if (workerFSM.getState() == WorkerError) {
-          throw new Exception("Worker error")
-        }
-      }
-
-      while (network.isSendingDataComplete() == false) {
-        logger.info("[Worker] Waiting for data to be sent")
-        Thread.sleep(10000)
+      while (network.isSendingDataComplete() == false || network.isMergeComplete() == false) {
+        Thread.sleep(1000)
       }
 
       workerFSM.transition(WorkerEventFinishSorting)
