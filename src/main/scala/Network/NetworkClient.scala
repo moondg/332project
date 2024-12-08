@@ -394,7 +394,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         getFileNames(outputDir)
           .filter(s => (s.take(Prefix.shuffling.length)) == Prefix.shuffling)
           .map(outputDir ++ "/" ++ _)
-      val tournamentTree = new TournamentTree(tempFilePaths, outputDir ++ "/result")
+      val tournamentTree = new TournamentTree(tempFilePaths, outputDir ++ "/" ++ Prefix.merged)
       logger.info("[Worker] Merge Start")
       tournamentTree.merge()
     }.onComplete({

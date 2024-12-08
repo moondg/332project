@@ -12,5 +12,6 @@ object Constant {
   }
   object Prefix {
     def shuffling = "received"
+    def merged = "result"
   }
 }
