@@ -35,7 +35,7 @@ object Master extends Logging {
 
       // Sampling Phase
       masterFSM.transition(MasterEventProceedSampling)
-      assert(masterFSM.getState() == MasterSendingMergeRequest)
+      assert(masterFSM.getState() == MasterSendingSampleRequest)
       logger.info("[Master] Sampling Phase")
       logger.info("[Master] Sending sampling request")
       networkServer.requestSampling()
