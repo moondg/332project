@@ -30,4 +30,4 @@ For each worker, run command above.
 You have to choose Worker after compling. (3)   
 Worker should be excuted after Master starts to wait connection of Workers. (Logger shows when Master start to wait)   
 Worker's output directory should be empty.   
-If logger says [Merge Complete], you have to manually stop by ctrl+C to get result. The result file is in the output directory, named with "result".   
+If logger says [Merge Complete], the result file is in the output directory, named with "result".   
