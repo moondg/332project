@@ -248,6 +248,9 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       var haveReachedEOF = false
 
       var fileIdRef = 0
+      val outFilePath = s"${outputDir}/received_${client._1}_"
+      var file = new File(outFilePath + fileIdRef.toString)
+      var fileWriter = new FileOutputStream(file, file.exists())
 
       val responseObserver = new StreamObserver[ShuffleExchangeResponse] {
         override def onNext(exchangeResponse: ShuffleExchangeResponse): Unit = {
@@ -256,20 +259,17 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
           assert(thisClient._1 == exchangeResponse.destinationIp)
           assert(thisClient._2 == exchangeResponse.destinationPort)
 
-          val outFilePath = s"${outputDir}/received_${client._1}_${fileIdRef}"
-          val file = new File(outFilePath)
-          val fileWriter = new FileOutputStream(file, file.exists())
-
           exchangeResponse.data match {
             case Some(dataChunk) => {
               val record = Record.recordFrom(dataChunk.data.toByteArray)
               haveReachedEOF = dataChunk.isEOF
               if (!haveReachedEOF) {
-                fileWriter.write(record.key.key)
-                fileWriter.write(record.value)
+                fileWriter.write(record.raw)
               } else {
                 fileIdRef += 1
                 fileWriter.close()
+                file = new File(outFilePath + fileIdRef.toString)
+                fileWriter = new FileOutputStream(file, file.exists())
               }
             }
             case None => onError(new Exception("Received empty data chunk"))
@@ -282,6 +282,7 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
 
         override def onCompleted(): Unit = {
           if (haveReachedEOF) {
+            fileWriter.close()
             promise.success(true)
           } else {
             promise.failure(new Exception("Did not receive EOF"))
