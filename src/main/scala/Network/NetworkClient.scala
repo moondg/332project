@@ -241,7 +241,6 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
         destinationPort = client._2)
 
       var haveReachedEOF = false
-      var dataCounterRef = 0
 
       val responseObserver = new StreamObserver[ShuffleExchangeResponse] {
         override def onNext(exchangeResponse: ShuffleExchangeResponse): Unit = {
@@ -255,10 +254,8 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
               val record = Record.recordFrom(dataChunk.data.toByteArray)
               haveReachedEOF = dataChunk.isEOF
               if (!haveReachedEOF) {
-                val outFilePath = s"${outputDir}/received_${client._1}_${dataCounterRef}"
+                val outFilePath = s"${outputDir}/received_${client._1}_${dataChunk.chunkIndex}"
                 writeFile(outFilePath, List(record))
-              } else {
-                dataCounterRef += 1
               }
             }
             case None => onError(new Exception("Received empty data chunk"))
