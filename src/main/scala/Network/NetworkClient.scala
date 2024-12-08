@@ -344,25 +344,23 @@ class ClientImpl(val inputDirs: List[String], val outputDir: String, val thisCli
       .filter(s => (s takeWhile (_ != '_')) == s"${request.sourceIp}:${request.sourcePort}")
 
     exchangeFileNames.foreach { exchangeFileName =>
-      val data: Seq[Record] =
+      val data =
         readFile(outputDir ++ "/" ++ exchangeFileName)
           .grouped(Constant.Size.record)
           .map(recordFrom)
-          .toSeq
-      size = size + data.length
-      logger.info(s"[Worker] Sending data to ${request.sourceIp}:${request.sourcePort}")
-      data.zipWithIndex.foreach { case (record, index) =>
-        val dataChunk =
-          DataChunk(data = ByteString.copyFrom(record.raw), chunkIndex = index, isEOF = false)
-        val response = ShuffleExchangeResponse(
-          sourceIp = request.destinationIp,
-          sourcePort = request.destinationPort,
-          destinationIp = request.sourceIp,
-          destinationPort = request.sourcePort,
-          data = Some(dataChunk))
+          .zipWithIndex
+          .foreach { case (record, index) =>
+            val dataChunk =
+              DataChunk(data = ByteString.copyFrom(record.raw), chunkIndex = index, isEOF = false)
+            val response = ShuffleExchangeResponse(
+              sourceIp = request.destinationIp,
+              sourcePort = request.destinationPort,
+              destinationIp = request.sourceIp,
+              destinationPort = request.sourcePort,
+              data = Some(dataChunk))
 
-        responseObserver.onNext(response)
-      }
+            responseObserver.onNext(response)
+          }
       val emptyResponse = ShuffleExchangeResponse(
         sourceIp = request.destinationIp,
         sourcePort = request.destinationPort,
