@@ -42,9 +42,9 @@ object Master extends Logging {
       networkServer.requestShuffling()
 
       // Merging Phase
-      // logger.info("[Master] Merging Phase")
-      // logger.info("[Master] Sending merging request")
-      // networkServer.requestMerging()
+      logger.info("[Master] Merging Phase")
+      logger.info("[Master] Sending merging request")
+      networkServer.requestMerging()
       
       // Verification Phase
       // logger.info("[Master] Verification Phase")

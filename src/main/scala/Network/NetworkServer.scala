@@ -270,6 +270,39 @@ class NetworkServer(port: Int, numberOfWorkers: Int, executionContext: Execution
     }
   }
 
+  def requestMerging(): Unit = {
+    val responses = clients.zip(stubs).toSeq.map {
+      case (client, stub) => {
+        val promise = Promise[Unit]()
+
+        val request = MergeRequest(workerIp = client._1, workerPort = client._2)
+
+        stub.mergeData(request).onComplete {
+          case Success(response) => {
+            if (response.isMergingSuccessful) {
+              promise.success(())
+            } else {
+              promise.failure(new Exception("Merging failed"))
+            }
+          }
+          case Failure(e) => promise.failure(e)
+        }
+
+        promise.future
+      }
+    }
+
+    try {
+      Await.result(Future.sequence(responses), Duration.Inf)
+      state = MasterReceivedMergeResponse
+    } catch {
+      case e: Exception => {
+        state = MasterReceivedMergeResponseFailure
+        logger.info(s"Failed to merge data: ${e.getMessage}")
+      }
+    }
+  }
+
 }
 
 class ServerImpl(clients: ListBuffer[Node]) extends MasterServiceGrpc.MasterService with Logging {
