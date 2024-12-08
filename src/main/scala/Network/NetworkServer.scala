@@ -46,7 +46,11 @@ object Network {
   type Node = (IPAddr, Port)
 }
 
-class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM, executionContext: ExecutionContext)
+class NetworkServer(
+    port: Int,
+    numberOfWorkers: Int,
+    masterFSM: MutableMasterFSM,
+    executionContext: ExecutionContext)
     extends Logging {
 
   var server: Server = null
@@ -97,8 +101,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
         if (masterFSM.getState() != MasterPendingSampleResponse) {
           masterFSM.transition(MasterEventSendSampleRequest)
         }
-        assert (masterFSM.getState() == MasterPendingSampleResponse)
-          
+        assert(masterFSM.getState() == MasterPendingSampleResponse)
+
         val promise = Promise[List[Key]]()
         val buffer = ListBuffer.empty[Key]
         var haveReachedEOF = false
@@ -164,8 +168,8 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
   }
 
   def requestPartitioning(): Unit = {
-    
-    assert(masterFSM.getState() == MasterMakingPartition)    
+
+    assert(masterFSM.getState() == MasterMakingPartition)
     val table = createTable()
     masterFSM.transition(MasterEventMadePartition)
     assert(masterFSM.getState() == MasterSendingPartitionRequest)
@@ -190,7 +194,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
           workerIp = client._1,
           workerPort = client._2,
           table = Option(tableProto))
-        
+
         if (masterFSM.getState() != MasterPendingPartitionResponse) {
           masterFSM.transition(MasterEventSendPartitionRequest)
         }
@@ -215,6 +219,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
       Await.result(Future.sequence(responses), Duration.Inf)
       masterFSM.transition(MasterEventReceivePartitionResponse)
       assert(masterFSM.getState() == MasterReceivedPartitionResponse)
+      logger.info("[Master] Received partition data")
     } catch {
       case e: Exception => {
         masterFSM.transition(MasterEventReceivePartitionResponseFailure)
@@ -292,7 +297,7 @@ class NetworkServer(port: Int, numberOfWorkers: Int, masterFSM: MutableMasterFSM
   }
 
   def requestMerging(): Unit = {
-    assert (masterFSM.getState() == MasterSendingMergeRequest)
+    assert(masterFSM.getState() == MasterSendingMergeRequest)
 
     val responses = clients.zip(stubs).toSeq.map {
       case (client, stub) => {
